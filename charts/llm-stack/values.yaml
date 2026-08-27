@@ -2,6 +2,13 @@
 # Sub-chart values are nested under the chart's name as declared in Chart.yaml.
 # See charts/llm-stack/ci/kind-values.yaml for a minimal working example.
 
+# Pin the fullname so all chart-owned resources (secrets, jobs, configmaps)
+# get stable names regardless of the Helm release name used at install time.
+# This is what makes litellm-helm.masterkeySecretName and secret cross-references
+# correct for any `helm install <anything> charts/llm-stack` invocation.
+# Override only if you deploy multiple instances in the same namespace.
+fullnameOverride: "llm-stack"
+
 global:
   domain: ""          # e.g. example.com — used for Ingress host construction
   storageClass: ""    # leave empty to use cluster default
@@ -109,9 +116,7 @@ litellm:
   enabled: true
 
 litellm-helm:
-  # masterkeySecretName must match the release-specific fullname-secrets name.
-  # Default assumes `helm install llm-stack charts/llm-stack` (release = chart name).
-  # Override in your values if using a different release name.
+  # Secret name matches llm-stack.secretName, which is stable via fullnameOverride above.
   masterkeySecretName: llm-stack-secrets
   masterkeySecretKey: litellmMasterKey
   db:

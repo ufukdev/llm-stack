@@ -96,7 +96,7 @@ jobs:
       - name: Run helm tests
         run: |
           helm test llm --namespace llm --timeout 5m \
-            --filter name=llm-llm-stack-test-webui-health
+            --filter name=llm-stack-test-webui-health
 
   schema-validate:
     name: Schema validation

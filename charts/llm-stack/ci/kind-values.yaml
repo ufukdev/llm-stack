@@ -42,7 +42,7 @@ open-webui:
   # LiteLLM gateway as OpenAI-compatible backend
   # CI release = "llm", so service is llm-litellm.llm.svc.cluster.local
   openaiBaseApiUrl: "http://llm-litellm.llm.svc.cluster.local:4000/v1"
-  openaiApiKeyExistingSecret: "llm-llm-stack-secrets"
+  openaiApiKeyExistingSecret: "llm-stack-secrets"
   openaiApiKeyExistingSecretKey: "litellmMasterKey"
   # SSO: point to internal Keycloak (browser redirect only works with Ingress in prod)
   sso:
@@ -51,8 +51,8 @@ open-webui:
     oidc:
       enabled: true
       clientId: "open-webui"
-      # Reference the chart-generated secret (CI release name is "llm" → "llm-llm-stack-secrets")
-      clientExistingSecret: "llm-llm-stack-secrets"
+      # Reference the chart-generated secret (CI release name is "llm" → "llm-stack-secrets")
+      clientExistingSecret: "llm-stack-secrets"
       clientExistingSecretKey: "oidcClientSecret"
       providerUrl: "http://llm-keycloakx-http.llm.svc.cluster.local:80/auth/realms/llm-stack"
       providerName: "Keycloak"
@@ -100,9 +100,9 @@ keycloakx:
 litellm:
   enabled: true
 
-# litellm-helm sub-chart: CI release is "llm" → secret name is "llm-llm-stack-secrets"
+# litellm-helm sub-chart: CI release is "llm" → secret name is "llm-stack-secrets"
 litellm-helm:
-  masterkeySecretName: "llm-llm-stack-secrets"
+  masterkeySecretName: "llm-stack-secrets"
   masterkeySecretKey: "litellmMasterKey"
   db:
     deployStandalone: true
