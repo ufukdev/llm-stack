@@ -1,0 +1,23 @@
+{{- if .Values.openWebui.enabled }}
+{{- $oidcEnabled := or .Values.keycloak.enabled .Values.oidc.external.enabled }}
+{{- if or $oidcEnabled .Values.qdrant.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-webui-env
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+data:
+  {{- if $oidcEnabled }}
+  ENABLE_OAUTH_SIGNUP: "true"
+  OAUTH_PROVIDER_NAME: {{ if .Values.oidc.external.enabled }}"SSO"{{ else }}"Keycloak"{{ end }}
+  OPENID_PROVIDER_URL: {{ include "llm-stack.oidcIssuerUrl" . | quote }}
+  OAUTH_CLIENT_ID: {{ if .Values.oidc.external.enabled }}{{ .Values.oidc.external.clientId | quote }}{{ else }}"open-webui"{{ end }}
+  {{- end }}
+  {{- if .Values.qdrant.enabled }}
+  VECTOR_DB: "qdrant"
+  QDRANT_URI: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}

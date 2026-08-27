@@ -39,6 +39,10 @@
             "apiKey": {
               "type": "string",
               "description": "API key for the external inference endpoint"
+            },
+            "modelName": {
+              "type": "string",
+              "description": "model_name used in LiteLLM model_list; defaults to 'external'"
             }
           }
         }

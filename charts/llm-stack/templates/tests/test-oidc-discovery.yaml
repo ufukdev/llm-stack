@@ -1,4 +1,6 @@
-{{- if or .Values.keycloak.enabled .Values.oidc.external.enabled }}
+{{- /* Only test internal Keycloak — external IdP is unreachable under default-deny egress.
+     Users with an external IdP should verify connectivity via allowedEgressCIDRs. */}}
+{{- if .Values.keycloak.enabled }}
 apiVersion: v1
 kind: Pod
 metadata:

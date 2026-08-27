@@ -21,6 +21,7 @@ inference:
   external:
     baseUrl: "" # required when mode=external
     apiKey: "" # optional
+    modelName: "external" # model_name used in litellm model_list; override if the endpoint expects a specific name
 
 # ---------------------------------------------------------------------------
 # Open WebUI — condition key: openWebui.enabled
@@ -41,6 +42,31 @@ open-webui:
   ollamaUrls: []
   pipelines:
     enabled: false
+  # Dynamic env vars (OIDC URLs, Qdrant URI) come from our ConfigMap.
+  # optional=true so the envFrom is a no-op when keycloak.enabled=false.
+  # secretRef exposes all shared secrets as env vars; the OIDC client secret
+  # is wired separately via sso.oidc.clientExistingSecret below.
+  extraEnvFrom:
+    - configMapRef:
+        name: llm-stack-webui-env
+        optional: true
+    - secretRef:
+        name: llm-stack-secrets
+  # SSO defaults — wired to the chart-generated Keycloak realm.
+  # providerUrl is empty here; it is injected at runtime via the
+  # llm-stack-webui-env ConfigMap (OPENID_PROVIDER_URL), so the URL is
+  # derived from the templated Keycloak internal address.
+  sso:
+    enabled: true
+    enableSignup: true
+    oidc:
+      enabled: true
+      clientId: "open-webui"
+      clientExistingSecret: "llm-stack-secrets"
+      clientExistingSecretKey: "oidcClientSecret"
+      providerUrl: ""   # set by llm-stack-webui-env ConfigMap at runtime
+      providerName: "Keycloak"
+      scopes: "openid email profile"
   extraEnvVars:
     - name: ENABLE_OLLAMA_API
       value: "true"

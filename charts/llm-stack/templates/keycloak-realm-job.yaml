@@ -1,4 +1,7 @@
 {{- if and .Values.keycloak.enabled .Values.keycloak.realmImport.enabled }}
+{{- if not .Values.global.domain }}
+{{- fail "global.domain is required when keycloak.enabled=true (used for redirectUris and webOrigins in the realm)" }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap

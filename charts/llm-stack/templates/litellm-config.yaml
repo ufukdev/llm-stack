@@ -35,9 +35,9 @@ data:
       [] # no models configured — add ollama.ollama.models.pull entries
     {{- end }}
     {{- else if eq .Values.inference.mode "external" }}
-      - model_name: external
+      - model_name: {{ .Values.inference.external.modelName | default "external" }}
         litellm_params:
-          model: "openai/external"
+          model: {{ printf "openai/%s" (.Values.inference.external.modelName | default "external") | quote }}
           api_base: {{ .Values.inference.external.baseUrl | quote }}
           {{- if .Values.inference.external.apiKey }}
           api_key: {{ .Values.inference.external.apiKey | quote }}
