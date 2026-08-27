@@ -25,6 +25,14 @@ open-webui:
   openaiBaseApiUrl: "https://api.example.com/v1"
   openaiApiKeyExistingSecret: ""
   openaiApiKey: "sk-placeholder"
+  # No Keycloak in this scenario — disable SSO to avoid a configMapKeyRef
+  # for OPENID_PROVIDER_URL that open-webui renders when sso.oidc.enabled=true.
+  # Without this, the Pod fails to start because the key is absent from the
+  # webui-env ConfigMap (only written when keycloak.enabled or oidc.external.enabled).
+  sso:
+    enabled: false
+    oidc:
+      enabled: false
 
 # Ollama disabled — using external inference
 ollama:
