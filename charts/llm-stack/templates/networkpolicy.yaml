@@ -27,8 +27,12 @@ spec:
     - Egress
     - Ingress
   egress:
-    # Allow DNS (kube-dns in kube-system)
-    - ports:
+    # Allow DNS only to kube-dns in kube-system (prevents DNS-tunneling exfiltration)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
         - protocol: UDP
           port: 53
         - protocol: TCP
