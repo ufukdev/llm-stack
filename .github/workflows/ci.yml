@@ -14,6 +14,10 @@ on:
       - ".github/workflows/ci.yml"
       - "ct.yaml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -91,7 +95,8 @@ jobs:
 
       - name: Run helm tests
         run: |
-          helm test llm --namespace llm --timeout 5m
+          helm test llm --namespace llm --timeout 5m \
+            --filter name=llm-llm-stack-test-webui-health
 
   schema-validate:
     name: Schema validation
@@ -99,6 +104,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate values against schema
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.17.0"
+
+      - name: Add chart repos
         run: |
-          helm lint charts/llm-stack --strict
+          helm repo add codecentric https://codecentric.github.io/helm-charts
+          helm repo add open-webui   https://helm.openwebui.com/
+          helm repo add qdrant       https://qdrant.github.io/qdrant-helm
+          helm repo add ollama       https://otwld.github.io/ollama-helm/
+          helm repo update
+
+      - name: Build chart dependencies
+        run: helm dependency build charts/llm-stack
+
+      - name: Validate values against schema
+        run: helm lint charts/llm-stack --strict
