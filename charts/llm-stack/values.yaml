@@ -78,27 +78,11 @@ open-webui:
       providerUrl: ""
       providerName: "Keycloak"
       scopes: "openid email profile"
-  extraEnvVars:
-    - name: ENABLE_OLLAMA_API
-      value: "false"
-    # Privacy: disable all external call-home behaviour by default.
-    # These are the correct knobs as of Open WebUI v0.11.x.
-    # Without these, Open WebUI contacts HuggingFace on startup (embedding
-    # model download) and CloudFront (community registry) — both blocked
-    # when networkPolicy.enabled=true and contradicting the "no data leaves"
-    # guarantee. Use Ollama for embeddings so no external dependency exists.
-    - name: ENABLE_COMMUNITY_SHARING
-      value: "false"
-    - name: SCARF_NO_ANALYTICS
-      value: "true"
-    - name: ANONYMIZED_TELEMETRY
-      value: "false"
-    - name: HF_HUB_OFFLINE
-      value: "1"
-    - name: RAG_EMBEDDING_ENGINE
-      value: "ollama"
-    - name: RAG_EMBEDDING_MODEL
-      value: "nomic-embed-text"
+  # Privacy settings and RAG configuration live in the webui-env ConfigMap
+  # (templates/webui-env.yaml) so they survive user overrides to extraEnvVars.
+  # Helm replaces lists on override — settings in extraEnvVars would be silently
+  # dropped whenever a user adds their own env var here.
+  extraEnvVars: []
 
 # ---------------------------------------------------------------------------
 # Ollama (local inference)
@@ -111,6 +95,7 @@ ollama:
     models:
       pull:
         - qwen2.5:0.5b
+        - nomic-embed-text
   persistence:
     enabled: true
     size: 10Gi
@@ -169,7 +154,8 @@ litellm-helm:
     deployStandalone: true
   # Use our chart-generated ConfigMap instead of litellm-helm's proxy_config rendering.
   # The ConfigMap is produced by templates/litellm-config.yaml from inference.* values.
-  configmap:
+  # NOTE: the litellm-helm chart uses proxyConfigMap (not configmap) for this control.
+  proxyConfigMap:
     create: false
     name: llm-stack-litellm-config
     key: config.yaml

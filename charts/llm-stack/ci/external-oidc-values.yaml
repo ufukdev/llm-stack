@@ -14,31 +14,6 @@ open-webui:
   persistence:
     enabled: true
     size: 1Gi
-  ollama:
-    enabled: false
-  ollamaUrls:
-    - http://llm-stack-ollama.llm.svc.cluster.local:11434
-  pipelines:
-    enabled: false
-  extraEnvVars:
-    - name: ENABLE_OLLAMA_API
-      value: "true"
-    - name: ENABLE_COMMUNITY_SHARING
-      value: "false"
-    - name: SCARF_NO_ANALYTICS
-      value: "true"
-    - name: ANONYMIZED_TELEMETRY
-      value: "false"
-    - name: HF_HUB_OFFLINE
-      value: "1"
-    - name: RAG_EMBEDDING_ENGINE
-      value: "ollama"
-    - name: RAG_EMBEDDING_MODEL
-      value: "nomic-embed-text"
-    - name: VECTOR_DB
-      value: "qdrant"
-    - name: QDRANT_URI
-      value: "http://llm-stack-qdrant.llm.svc.cluster.local:6333"
 
 ollama:
   enabled: true
@@ -46,6 +21,7 @@ ollama:
     models:
       pull:
         - qwen2.5:0.5b
+        - nomic-embed-text
   persistence:
     enabled: true
     size: 5Gi
@@ -69,7 +45,7 @@ oidc:
     clientSecret: "external-secret-placeholder"
 
 litellm:
-  enabled: false
+  enabled: true
 
 networkPolicy:
   enabled: false

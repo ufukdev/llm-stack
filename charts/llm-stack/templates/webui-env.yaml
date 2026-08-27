@@ -1,6 +1,5 @@
 {{- if .Values.openWebui.enabled }}
 {{- $oidcEnabled := or .Values.keycloak.enabled .Values.oidc.external.enabled }}
-{{- if or $oidcEnabled .Values.qdrant.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,6 +8,20 @@ metadata:
   labels:
     {{- include "llm-stack.labels" . | nindent 4 }}
 data:
+  # Privacy: disable all external call-home behaviour by default.
+  # Placed here (not in extraEnvVars) so user overrides to extraEnvVars
+  # do not silently drop these settings — Helm replaces lists, not merges them.
+  ENABLE_OLLAMA_API: "false"
+  ENABLE_COMMUNITY_SHARING: "false"
+  SCARF_NO_ANALYTICS: "true"
+  ANONYMIZED_TELEMETRY: "false"
+  HF_HUB_OFFLINE: "1"
+  {{- if .Values.ollama.enabled }}
+  # RAG embedding via local Ollama — requires nomic-embed-text to be pulled.
+  RAG_EMBEDDING_ENGINE: "ollama"
+  RAG_EMBEDDING_MODEL: "nomic-embed-text"
+  RAG_OLLAMA_BASE_URL: {{ printf "http://%s-ollama.%s.svc.cluster.local:11434" (include "llm-stack.fullname" .) .Release.Namespace | quote }}
+  {{- end }}
   {{- if $oidcEnabled }}
   # Only the URL goes here — other SSO env vars (ENABLE_OAUTH_SIGNUP, OAUTH_CLIENT_ID,
   # OAUTH_PROVIDER_NAME) are set by the open-webui chart from its sso.* values
@@ -19,5 +32,4 @@ data:
   VECTOR_DB: "qdrant"
   QDRANT_URI: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" (include "llm-stack.fullname" .) .Release.Namespace | quote }}
   {{- end }}
-{{- end }}
 {{- end }}

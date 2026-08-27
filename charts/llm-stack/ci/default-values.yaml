@@ -33,6 +33,7 @@ ollama:
     models:
       pull:
         - qwen2.5:0.5b
+        - nomic-embed-text
   persistence:
     enabled: true
     size: 5Gi
