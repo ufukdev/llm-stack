@@ -1,0 +1,136 @@
+# Example: GPU-accelerated local inference with NVIDIA Ollama
+#
+# Use this when your cluster has nodes with NVIDIA GPUs and you want
+# Ollama to run models with hardware acceleration.
+#
+# Prerequisites
+# -------------
+# 1. NVIDIA GPU Operator installed in the cluster:
+#      https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/
+# 2. Nodes labeled with the GPU resource (done automatically by the operator).
+# 3. Sufficient VRAM for your chosen model (see model requirements below).
+#
+# Model VRAM guidelines (fp16 weights):
+#   qwen2.5:7b   → ~8 GB VRAM   (RTX 3070 / Tesla T4)
+#   llama3.1:8b  → ~9 GB VRAM   (RTX 3080 / A10G)
+#   llama3.1:70b → ~80 GB VRAM  (A100 80G or multi-GPU)
+#
+# Install:
+#   helm upgrade --install llm-stack charts/llm-stack \
+#     -n llm --create-namespace \
+#     -f charts/llm-stack/examples/values-gpu.yaml
+
+global:
+  domain: "example.com"
+
+# ---------------------------------------------------------------------------
+# Inference — Ollama with GPU
+# ---------------------------------------------------------------------------
+inference:
+  mode: local
+
+ollama:
+  enabled: true
+  ollama:
+    gpu:
+      enabled: true
+      type: nvidia   # nvidia | amd
+      number: 1      # number of GPUs to request
+    models:
+      pull:
+        - llama3.1:8b   # change to match your VRAM capacity
+  persistence:
+    enabled: true
+    size: 50Gi         # large enough for several models
+  # Pin Ollama pods to GPU nodes
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+  resources:
+    requests:
+      nvidia.com/gpu: "1"
+    limits:
+      nvidia.com/gpu: "1"
+
+# ---------------------------------------------------------------------------
+# Open WebUI
+# ---------------------------------------------------------------------------
+openWebui:
+  enabled: true
+
+open-webui:
+  persistence:
+    enabled: true
+    size: 5Gi
+  ollama:
+    enabled: false
+  ollamaUrls:
+    - http://llm-stack-ollama.llm.svc.cluster.local:11434
+  pipelines:
+    enabled: false
+  extraEnvVars:
+    - name: ENABLE_OLLAMA_API
+      value: "true"
+    - name: VECTOR_DB
+      value: "qdrant"
+    - name: QDRANT_URI
+      value: "http://llm-stack-qdrant.llm.svc.cluster.local:6333"
+
+# ---------------------------------------------------------------------------
+# LiteLLM — optional, useful for multi-model routing
+# ---------------------------------------------------------------------------
+litellm:
+  enabled: true
+
+litellm-helm:
+  masterkeySecretName: llm-stack-secrets
+  masterkeySecretKey: litellmMasterKey
+  db:
+    deployStandalone: true
+  proxy_config:
+    model_list:
+      - model_name: llama3.1-8b
+        litellm_params:
+          model: ollama/llama3.1:8b
+          api_base: "http://llm-stack-ollama.llm.svc.cluster.local:11434"
+    general_settings:
+      master_key: os.environ/PROXY_MASTER_KEY
+
+# ---------------------------------------------------------------------------
+# Qdrant
+# ---------------------------------------------------------------------------
+qdrant:
+  enabled: true
+  persistence:
+    size: 20Gi
+
+# ---------------------------------------------------------------------------
+# Keycloak SSO — adjust or disable as needed
+# ---------------------------------------------------------------------------
+keycloak:
+  enabled: true
+  realmImport:
+    enabled: true
+
+keycloakx:
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start"
+    - "--import-realm"
+    - "--hostname-strict=false"
+    - "--http-enabled=true"
+  extraEnv: |
+    - name: KC_PROXY
+      value: "edge"
+
+ingress:
+  enabled: true
+  className: nginx
+  tls:
+    issuer: letsencrypt-prod
+
+networkPolicy:
+  enabled: false   # enable if your CNI supports it

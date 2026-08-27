@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b7280"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="560" fill="#f9fafb" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="32" text-anchor="middle" font-size="16" font-weight="bold" fill="#111827">llm-stack — Architecture</text>
+
+  <!-- ── Browser / User ── -->
+  <rect x="30" y="220" width="110" height="50" rx="8" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="85" y="240" text-anchor="middle" fill="#0369a1" font-weight="bold">Browser</text>
+  <text x="85" y="257" text-anchor="middle" fill="#0369a1" font-size="11">/ User</text>
+
+  <!-- ── Ingress ── -->
+  <rect x="205" y="220" width="110" height="50" rx="8" fill="#fef9c3" stroke="#facc15" stroke-width="1.5"/>
+  <text x="260" y="240" text-anchor="middle" fill="#713f12" font-weight="bold">Ingress</text>
+  <text x="260" y="257" text-anchor="middle" fill="#713f12" font-size="11">nginx</text>
+
+  <!-- Browser → Ingress -->
+  <line x1="140" y1="245" x2="200" y2="245" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ── Open WebUI ── -->
+  <rect x="375" y="190" width="150" height="60" rx="8" fill="#d1fae5" stroke="#34d399" stroke-width="2"/>
+  <text x="450" y="214" text-anchor="middle" fill="#065f46" font-weight="bold">Open WebUI</text>
+  <text x="450" y="232" text-anchor="middle" fill="#065f46" font-size="11">v0.11.1 · :8080</text>
+  <text x="450" y="245" text-anchor="middle" fill="#065f46" font-size="10">chat.{domain}</text>
+
+  <!-- Ingress → Open WebUI -->
+  <line x1="315" y1="245" x2="370" y2="225" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ── Keycloak ── -->
+  <rect x="375" y="60" width="150" height="60" rx="8" fill="#ede9fe" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="450" y="84" text-anchor="middle" fill="#4c1d95" font-weight="bold">Keycloak</text>
+  <text x="450" y="102" text-anchor="middle" fill="#4c1d95" font-size="11">keycloakx · :8080</text>
+  <text x="450" y="115" text-anchor="middle" fill="#4c1d95" font-size="10">auth.{domain}/auth</text>
+
+  <!-- Ingress → Keycloak -->
+  <line x1="315" y1="235" x2="370" y2="105" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Open WebUI → Keycloak (OIDC discovery) -->
+  <line x1="450" y1="190" x2="450" y2="125" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="458" y="162" fill="#6d28d9" font-size="10">OIDC</text>
+
+  <!-- ── Ollama ── -->
+  <rect x="660" y="60" width="150" height="60" rx="8" fill="#ffedd5" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="735" y="84" text-anchor="middle" fill="#7c2d12" font-weight="bold">Ollama</text>
+  <text x="735" y="102" text-anchor="middle" fill="#7c2d12" font-size="11">:11434</text>
+  <text x="735" y="115" text-anchor="middle" fill="#7c2d12" font-size="10">local inference</text>
+
+  <!-- ── LiteLLM ── -->
+  <rect x="660" y="190" width="150" height="60" rx="8" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/>
+  <text x="735" y="214" text-anchor="middle" fill="#7f1d1d" font-weight="bold">LiteLLM</text>
+  <text x="735" y="232" text-anchor="middle" fill="#7f1d1d" font-size="11">:4000</text>
+  <text x="735" y="245" text-anchor="middle" fill="#7f1d1d" font-size="10">OpenAI-compat gateway</text>
+
+  <!-- Open WebUI → LiteLLM -->
+  <line x1="525" y1="220" x2="655" y2="220" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="588" y="213" text-anchor="middle" fill="#374151" font-size="10">completions</text>
+
+  <!-- LiteLLM → Ollama -->
+  <line x1="735" y1="190" x2="735" y2="125" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Open WebUI → Ollama (direct, dashed) -->
+  <line x1="525" y1="200" x2="655" y2="95" stroke="#6b7280" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="590" y="148" fill="#6b7280" font-size="9">direct (opt)</text>
+
+  <!-- ── Qdrant ── -->
+  <rect x="660" y="340" width="150" height="60" rx="8" fill="#cffafe" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="735" y="364" text-anchor="middle" fill="#155e75" font-weight="bold">Qdrant</text>
+  <text x="735" y="382" text-anchor="middle" fill="#155e75" font-size="11">:6333</text>
+  <text x="735" y="395" text-anchor="middle" fill="#155e75" font-size="10">vector store</text>
+
+  <!-- Open WebUI → Qdrant -->
+  <line x1="525" y1="240" x2="655" y2="358" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="597" y="317" fill="#374151" font-size="10">RAG</text>
+
+  <!-- ── Secrets ── -->
+  <rect x="205" y="340" width="150" height="60" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="280" y="364" text-anchor="middle" fill="#374151" font-weight="bold">Secret</text>
+  <text x="280" y="382" text-anchor="middle" fill="#374151" font-size="11">{release}-secrets</text>
+  <text x="280" y="395" text-anchor="middle" fill="#374151" font-size="10">stable across upgrades</text>
+
+  <!-- Secret connections (dashed) -->
+  <line x1="355" y1="370" x2="370" y2="245" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <line x1="355" y1="360" x2="370" y2="120" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- ── Realm Import Job ── -->
+  <rect x="375" y="430" width="150" height="50" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="450" y="452" text-anchor="middle" fill="#78350f" font-weight="bold">Realm Import</text>
+  <text x="450" y="470" text-anchor="middle" fill="#78350f" font-size="10">post-install Job</text>
+
+  <!-- Realm Import → Keycloak -->
+  <line x1="450" y1="430" x2="450" y2="125" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- ── External API ── -->
+  <rect x="660" y="430" width="150" height="50" rx="8" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="735" y="452" text-anchor="middle" fill="#6b7280" font-weight="bold">External API</text>
+  <text x="735" y="470" text-anchor="middle" fill="#6b7280" font-size="10">OpenAI / custom</text>
+
+  <!-- LiteLLM → External API -->
+  <line x1="735" y1="250" x2="735" y2="425" stroke="#6b7280" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="30" y="490" width="400" height="55" rx="6" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="45" y="510" fill="#374151" font-size="11" font-weight="bold">Legend</text>
+  <line x1="45" y1="525" x2="75" y2="525" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="82" y="529" fill="#6b7280" font-size="11">HTTP request</text>
+  <line x1="175" y1="525" x2="205" y2="525" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="212" y="529" fill="#6b7280" font-size="11">OIDC / SSO</text>
+  <line x1="305" y1="525" x2="335" y2="525" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="342" y="529" fill="#6b7280" font-size="11">secret ref</text>
+
+  <!-- Namespace box -->
+  <rect x="355" y="48" width="480" height="465" rx="10" fill="none" stroke="#d1d5db" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="595" y="43" text-anchor="middle" fill="#9ca3af" font-size="11">namespace: llm</text>
+</svg>

@@ -1,0 +1,152 @@
+# Example: Air-gapped / private registry deployment
+#
+# Use this when your cluster has no internet access and all images must
+# be pulled from an internal container registry.
+#
+# Prerequisites
+# -------------
+# 1. Mirror the following images to your private registry:
+#
+#    Source                                      → Target
+#    --------------------------------------------------
+#    ghcr.io/open-webui/open-webui:<tag>        → registry.internal/open-webui/open-webui:<tag>
+#    ollama/ollama:<tag>                         → registry.internal/ollama/ollama:<tag>
+#    quay.io/keycloak/keycloak:<tag>             → registry.internal/keycloak/keycloak:<tag>
+#    qdrant/qdrant:<tag>                         → registry.internal/qdrant/qdrant:<tag>
+#    ghcr.io/berriai/litellm:<tag>              → registry.internal/berriai/litellm:<tag>
+#    curlimages/curl:8.8.0                      → registry.internal/curlimages/curl:8.8.0
+#
+# 2. If your registry requires authentication, create an image pull secret:
+#      kubectl create secret docker-registry regcred \
+#        --docker-server=registry.internal \
+#        --docker-username=<user> \
+#        --docker-password=<token> \
+#        -n llm
+#
+# 3. Pre-pull Ollama model weights and bake them into your Ollama image,
+#    OR mount them from a PVC that was populated offline.
+#    The `ollama.models.pull` list will fail without internet access.
+#
+# Install:
+#   helm upgrade --install llm-stack charts/llm-stack \
+#     -n llm --create-namespace \
+#     -f charts/llm-stack/examples/values-airgapped.yaml
+
+global:
+  domain: "example.internal"
+
+# ---------------------------------------------------------------------------
+# Inference — Ollama with internal registry image, no model pull
+# ---------------------------------------------------------------------------
+inference:
+  mode: local
+
+ollama:
+  enabled: true
+  image:
+    repository: registry.internal/ollama/ollama
+    # tag: "0.9.6"   # pin to a mirrored tag
+  ollama:
+    models:
+      pull: []       # disable model pull — models must be pre-loaded in the image or PVC
+  persistence:
+    enabled: true
+    size: 50Gi
+  imagePullSecrets:
+    - name: regcred
+
+# ---------------------------------------------------------------------------
+# Open WebUI — internal registry image
+# ---------------------------------------------------------------------------
+openWebui:
+  enabled: true
+
+open-webui:
+  image:
+    repository: registry.internal/open-webui/open-webui
+    # tag: "latest"
+  persistence:
+    enabled: true
+    size: 5Gi
+  ollama:
+    enabled: false
+  ollamaUrls:
+    - http://llm-stack-ollama.llm.svc.cluster.local:11434
+  pipelines:
+    enabled: false
+  imagePullSecrets:
+    - name: regcred
+  extraEnvVars:
+    - name: ENABLE_OLLAMA_API
+      value: "true"
+    - name: VECTOR_DB
+      value: "qdrant"
+    - name: QDRANT_URI
+      value: "http://llm-stack-qdrant.llm.svc.cluster.local:6333"
+    # Disable features that phone home
+    - name: ENABLE_COMMUNITY_SHARING
+      value: "false"
+    - name: SCARF_NO_ANALYTICS
+      value: "true"
+    # Point HuggingFace at your internal mirror (if available)
+    # - name: HF_ENDPOINT
+    #   value: "https://huggingface.internal"
+    # Or disable the embedding model download and use a local model:
+    # - name: RAG_EMBEDDING_ENGINE
+    #   value: "ollama"
+    # - name: RAG_EMBEDDING_MODEL
+    #   value: "nomic-embed-text"
+
+# ---------------------------------------------------------------------------
+# Qdrant — internal registry image
+# ---------------------------------------------------------------------------
+qdrant:
+  enabled: true
+  image:
+    repository: registry.internal/qdrant/qdrant
+  imagePullSecrets:
+    - name: regcred
+  persistence:
+    size: 20Gi
+
+# ---------------------------------------------------------------------------
+# Keycloak — internal registry image
+# ---------------------------------------------------------------------------
+keycloak:
+  enabled: true
+  realmImport:
+    enabled: true
+
+keycloakx:
+  image:
+    repository: registry.internal/keycloak/keycloak
+  imagePullSecrets:
+    - name: regcred
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start"
+    - "--import-realm"
+    - "--hostname-strict=false"
+    - "--http-enabled=true"
+  extraEnv: |
+    - name: KC_PROXY
+      value: "edge"
+
+# ---------------------------------------------------------------------------
+# LiteLLM — disabled by default; enable if you need a gateway layer
+# ---------------------------------------------------------------------------
+litellm:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Ingress and NetworkPolicy
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  tls:
+    issuer: ""           # use internal CA — configure cert-manager with your CA secret
+    secretName: "llm-tls-secret"
+
+networkPolicy:
+  enabled: true         # strongly recommended in air-gapped environments
