@@ -29,7 +29,14 @@ open-webui:
     size: 2Gi
   ollama:
     enabled: false    # managed separately by the ollama sub-chart
-  extraEnvFrom: []
+  # ollamaUrls is the correct way to point Open WebUI at an external Ollama
+  # (verified against open-webui chart v16.1.0)
+  ollamaUrls: []
+  pipelines:
+    enabled: false
+  extraEnvVars:
+    - name: ENABLE_OLLAMA_API
+      value: "true"
 
 # ---------------------------------------------------------------------------
 # Ollama (local inference)

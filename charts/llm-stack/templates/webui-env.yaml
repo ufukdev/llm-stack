@@ -1,5 +1,21 @@
+{{/*
+  webui-env.yaml — builds the extraEnvVars list injected into the open-webui sub-chart.
+  Ollama URL is set via open-webui.ollamaUrls (chart-native, not via env var).
+  This template only handles OIDC and Qdrant env vars that have no chart-native key.
+*/}}
 {{- if .Values.openWebui.enabled }}
 {{- $oidcEnabled := or .Values.keycloak.enabled .Values.oidc.external.enabled }}
+{{- if or $oidcEnabled .Values.qdrant.enabled }}
+{{/*
+  NOTE: The env vars below are injected into open-webui via values.yaml:
+    open-webui.extraEnvVars:
+      - name: ENABLE_OAUTH_SIGNUP
+        value: "true"
+      ...
+  This ConfigMap is kept as a reference / override mechanism for operators.
+  The sub-chart picks up its own extraEnvVars from values, not from this ConfigMap directly.
+  For OIDC to take effect, the helm upgrade must include these values under open-webui.extraEnvVars.
+*/}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,15 +34,9 @@ data:
   OAUTH_CLIENT_ID: "open-webui"
   {{- end }}
   {{- end }}
-  {{- if and .Values.litellm.enabled }}
-  OPENAI_API_BASE_URL: {{ printf "http://%s-litellm.%s.svc.cluster.local:4000/v1" .Release.Name .Release.Namespace | quote }}
-  {{- else if eq .Values.inference.mode "external" }}
-  OPENAI_API_BASE_URL: {{ .Values.inference.external.baseUrl | quote }}
-  {{- else }}
-  OLLAMA_BASE_URL: {{ printf "http://%s-ollama.%s.svc.cluster.local:11434" .Release.Name .Release.Namespace | quote }}
-  {{- end }}
   VECTOR_DB: "qdrant"
   {{- if .Values.qdrant.enabled }}
   QDRANT_URL: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace | quote }}
   {{- end }}
+{{- end }}
 {{- end }}

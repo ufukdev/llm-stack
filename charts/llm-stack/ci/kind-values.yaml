@@ -14,6 +14,15 @@ open-webui:
   persistence:
     enabled: true
     size: 1Gi
+  ollama:
+    enabled: false
+  ollamaUrls:
+    - http://llm-ollama.llm.svc.cluster.local:11434
+  pipelines:
+    enabled: false
+  extraEnvVars:
+    - name: ENABLE_OLLAMA_API
+      value: "true"
 
 ollama:
   enabled: true
