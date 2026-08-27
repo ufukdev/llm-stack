@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "helm-values": {
+    "fileMatch": ["charts/.*/values\\.yaml$", "charts/.*/ci/.*\\.yaml$"]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["charts/llm-stack/Chart\\.yaml$"],
+      "matchStrings": [
+        "- name: (?<depName>[\\w-]+)\\n\\s+version: \"(?<currentValue>[^\"]+)\"\\n\\s+repository: (?<registryUrl>[^\\n]+)"
+      ],
+      "datasourceTemplate": "helm",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["hack/kind-with-calico\\.sh$"],
+      "matchStrings": ["CALICO_VERSION=\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "calico",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "projectcalico/calico"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["helm-values", "regex"],
+      "matchPackageNames": ["open-webui", "keycloakx", "qdrant", "ollama", "litellm-helm"],
+      "groupName": "helm subchart dependencies",
+      "automerge": false
+    }
+  ]
+}

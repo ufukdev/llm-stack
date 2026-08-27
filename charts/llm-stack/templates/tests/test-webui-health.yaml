@@ -1,0 +1,36 @@
+{{- if .Values.openWebui.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-test-webui-health
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: health-check
+      image: curlimages/curl:8.8.0
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "Waiting for Open WebUI to be ready..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+              http://{{ .Release.Name }}-open-webui.{{ .Release.Namespace }}.svc.cluster.local/health \
+              2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Open WebUI healthy (HTTP 200)"
+              exit 0
+            fi
+            echo "Attempt $i/30 — status: $STATUS, retrying in 5s..."
+            sleep 5
+          done
+          echo "Open WebUI did not become healthy in time"
+          exit 1
+{{- end }}

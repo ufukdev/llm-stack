@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "llm-stack values",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "global": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "Base domain used for Ingress host construction (e.g. example.com)"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "StorageClass name; leave empty to use cluster default"
+        }
+      }
+    },
+    "inference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["local", "external"],
+          "description": "Inference backend: local (Ollama) or external (bring your own endpoint)"
+        },
+        "external": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "baseUrl": {
+              "type": "string",
+              "description": "OpenAI-compatible base URL, required when mode=external"
+            },
+            "apiKey": {
+              "type": "string",
+              "description": "API key for the external inference endpoint"
+            }
+          }
+        }
+      }
+    },
+    "openWebui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy Open WebUI"
+        },
+        "host": {
+          "type": "string",
+          "description": "Override Ingress host for Open WebUI; defaults to chat.<global.domain>"
+        }
+      }
+    },
+    "ollama": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy Ollama for local inference"
+        }
+      }
+    },
+    "qdrant": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy Qdrant vector store"
+        }
+      }
+    },
+    "keycloak": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy Keycloak for SSO"
+        },
+        "realmImport": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Run the realm-import Job on first install"
+            }
+          }
+        },
+        "adminUser": {
+          "type": "string",
+          "description": "Keycloak admin username"
+        },
+        "adminPassword": {
+          "type": "string",
+          "description": "Keycloak admin password; empty = use generated secret"
+        }
+      }
+    },
+    "litellm": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy LiteLLM OpenAI-compatible gateway"
+        }
+      }
+    },
+    "oidc": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Use an external OIDC provider instead of the bundled Keycloak"
+            },
+            "issuerUrl": {
+              "type": "string",
+              "description": "OIDC issuer URL (e.g. https://sso.example.com/auth/realms/my-realm)"
+            },
+            "clientId": {
+              "type": "string",
+              "description": "OIDC client ID registered with the external provider"
+            },
+            "clientSecret": {
+              "type": "string",
+              "description": "OIDC client secret; prefer --set or an external secret manager"
+            }
+          }
+        }
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy NetworkPolicies (requires Calico, Cilium, or similar CNI)"
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Deploy Ingress resources"
+        },
+        "className": {
+          "type": "string",
+          "description": "IngressClass name (e.g. nginx)"
+        },
+        "tls": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "secretName": {
+              "type": "string",
+              "description": "TLS secret name; leave empty to use cert-manager annotation"
+            },
+            "issuer": {
+              "type": "string",
+              "description": "cert-manager ClusterIssuer name"
+            }
+          }
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "litellmMasterKey": {
+          "type": "string",
+          "description": "LiteLLM master key; generated on first install if empty"
+        },
+        "oidcClientSecret": {
+          "type": "string",
+          "description": "OIDC client secret stored in the shared Secret"
+        },
+        "keycloakAdminPassword": {
+          "type": "string",
+          "description": "Keycloak admin password stored in the shared Secret"
+        }
+      }
+    }
+  }
+}

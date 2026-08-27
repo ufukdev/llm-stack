@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "charts/**"
+      - ".github/workflows/ci.yml"
+      - "ct.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "charts/**"
+      - ".github/workflows/ci.yml"
+      - "ct.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.17.0"
+
+      - uses: helm/chart-testing-action@v2.7.0
+
+      - name: Add chart repos
+        run: |
+          helm repo add codecentric https://codecentric.github.io/helm-charts
+          helm repo add open-webui   https://helm.openwebui.com/
+          helm repo add qdrant       https://qdrant.github.io/qdrant-helm
+          helm repo add ollama       https://otwld.github.io/ollama-helm/
+          helm repo update
+
+      - name: Run chart-testing (lint)
+        run: ct lint --config ct.yaml
+
+  install:
+    name: Install (${{ matrix.scenario }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        scenario:
+          - kind-values
+          - external-oidc-values
+          - external-inference-values
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.17.0"
+
+      - uses: helm/chart-testing-action@v2.7.0
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: chart-testing
+
+      - name: Add chart repos
+        run: |
+          helm repo add codecentric https://codecentric.github.io/helm-charts
+          helm repo add open-webui   https://helm.openwebui.com/
+          helm repo add qdrant       https://qdrant.github.io/qdrant-helm
+          helm repo add ollama       https://otwld.github.io/ollama-helm/
+          helm repo update
+
+      - name: Update chart dependencies
+        run: helm dependency update charts/llm-stack
+
+      - name: Install chart (${{ matrix.scenario }})
+        run: |
+          helm install llm charts/llm-stack \
+            --namespace llm \
+            --create-namespace \
+            -f charts/llm-stack/ci/${{ matrix.scenario }}.yaml \
+            --timeout 10m \
+            --wait
+
+      - name: Run helm tests
+        run: |
+          helm test llm --namespace llm --timeout 5m
+
+  schema-validate:
+    name: Schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate values against schema
+        run: |
+          helm lint charts/llm-stack --strict
