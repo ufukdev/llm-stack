@@ -1,0 +1,46 @@
+{{- if .Values.litellm.enabled }}
+{{- /*
+  Generate the LiteLLM proxy config from chart-level inference values.
+
+  inference.mode: local  → one entry per model in ollama.ollama.models.pull,
+                           api_base points at the in-cluster Ollama service.
+  inference.mode: external → single entry pointing at inference.external.baseUrl.
+
+  The ConfigMap is consumed by litellm-helm via:
+    litellm-helm.configmap.create: false
+    litellm-helm.configmap.name: llm-stack-litellm-config
+    litellm-helm.configmap.key: config.yaml
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-litellm-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    general_settings:
+      master_key: os.environ/PROXY_MASTER_KEY
+    model_list:
+    {{- if and (eq .Values.inference.mode "local") .Values.ollama.enabled }}
+    {{- if .Values.ollama.ollama.models.pull }}
+    {{- range .Values.ollama.ollama.models.pull }}
+      - model_name: {{ . | replace ":" "-" }}
+        litellm_params:
+          model: "ollama/{{ . }}"
+          api_base: "http://{{ $.Release.Name }}-ollama.{{ $.Release.Namespace }}.svc.cluster.local:11434"
+    {{- end }}
+    {{- else }}
+      [] # no models configured — add ollama.ollama.models.pull entries
+    {{- end }}
+    {{- else if eq .Values.inference.mode "external" }}
+      - model_name: external
+        litellm_params:
+          model: "openai/external"
+          api_base: {{ .Values.inference.external.baseUrl | quote }}
+          {{- if .Values.inference.external.apiKey }}
+          api_key: {{ .Values.inference.external.apiKey | quote }}
+          {{- end }}
+    {{- end }}
+{{- end }}

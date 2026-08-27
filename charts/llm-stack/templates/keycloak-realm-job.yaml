@@ -62,7 +62,7 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: wait-for-keycloak
-          image: curlimages/curl:8.5.0
+          image: {{ .Values.keycloak.realmImport.images.curl.repository }}:{{ .Values.keycloak.realmImport.images.curl.tag }}
           command:
             - sh
             - -c
@@ -73,7 +73,7 @@ spec:
               done
       containers:
         - name: realm-import
-          image: quay.io/adorsys/keycloak-config-cli:latest-24.0.5
+          image: {{ .Values.keycloak.realmImport.images.configCli.repository }}:{{ .Values.keycloak.realmImport.images.configCli.tag }}
           env:
             - name: KEYCLOAK_URL
               value: {{ include "llm-stack.keycloakAuthUrl" . | quote }}

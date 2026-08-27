@@ -1,0 +1,43 @@
+{{- if .Values.litellm.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-test-litellm-models
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: litellm-check
+      image: {{ .Values.keycloak.realmImport.images.curl.repository }}:{{ .Values.keycloak.realmImport.images.curl.tag }}
+      env:
+        - name: LITELLM_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "llm-stack.secretName" . }}
+              key: litellmMasterKey
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          GATEWAY="http://{{ .Release.Name }}-litellm.{{ .Release.Namespace }}.svc.cluster.local:4000"
+          echo "Checking LiteLLM gateway at: $GATEWAY"
+          for i in $(seq 1 20); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $LITELLM_KEY" \
+              "$GATEWAY/models" 2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "LiteLLM /models OK (HTTP 200)"
+              exit 0
+            fi
+            echo "Attempt $i/20 — status: $STATUS, retrying in 5s..."
+            sleep 5
+          done
+          echo "LiteLLM gateway did not respond in time"
+          exit 1
+{{- end }}

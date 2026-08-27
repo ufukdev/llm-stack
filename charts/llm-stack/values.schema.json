@@ -97,7 +97,31 @@
             "sslRequired": {
               "type": "string",
               "enum": ["external", "all", "none"],
-              "description": "Keycloak realm sslRequired setting. Use 'external' in production, 'none' only in CI/dev environments without TLS"
+              "description": "Keycloak realm sslRequired. Use 'external' in prod, 'none' in CI/dev"
+            },
+            "images": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Image overrides for air-gapped deployments",
+              "properties": {
+                "curl": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "repository": { "type": "string" },
+                    "tag": { "type": "string" }
+                  }
+                },
+                "configCli": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "keycloak-config-cli image — tag must match Keycloak major version",
+                  "properties": {
+                    "repository": { "type": "string" },
+                    "tag": { "type": "string" }
+                  }
+                }
+              }
             }
           }
         },

@@ -1,0 +1,36 @@
+{{- if or .Values.keycloak.enabled .Values.oidc.external.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-test-oidc-discovery
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: oidc-check
+      image: {{ .Values.keycloak.realmImport.images.curl.repository }}:{{ .Values.keycloak.realmImport.images.curl.tag }}
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          ISSUER={{ include "llm-stack.oidcIssuerUrl" . | quote }}
+          DISCOVERY="${ISSUER}/.well-known/openid-configuration"
+          echo "Checking OIDC discovery at: $DISCOVERY"
+          for i in $(seq 1 20); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "$DISCOVERY" 2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "OIDC discovery OK (HTTP 200)"
+              exit 0
+            fi
+            echo "Attempt $i/20 — status: $STATUS, retrying in 5s..."
+            sleep 5
+          done
+          echo "OIDC discovery did not respond in time"
+          exit 1
+{{- end }}

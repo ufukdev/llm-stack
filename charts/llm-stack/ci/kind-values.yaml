@@ -100,20 +100,8 @@ keycloakx:
 litellm:
   enabled: true
 
-# litellm-helm sub-chart: CI release is "llm" → secret name is "llm-stack-secrets"
-litellm-helm:
-  masterkeySecretName: "llm-stack-secrets"
-  masterkeySecretKey: "litellmMasterKey"
-  db:
-    deployStandalone: true
-  proxy_config:
-    model_list:
-      - model_name: qwen2.5-0.5b
-        litellm_params:
-          model: ollama/qwen2.5:0.5b
-          api_base: "http://llm-ollama.llm.svc.cluster.local:11434"
-    general_settings:
-      master_key: os.environ/PROXY_MASTER_KEY
+# litellm model list is auto-generated from ollama.ollama.models.pull by
+# templates/litellm-config.yaml — no override needed here.
 
 networkPolicy:
   enabled: false
