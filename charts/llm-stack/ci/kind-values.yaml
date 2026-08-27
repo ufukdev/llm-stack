@@ -23,6 +23,19 @@ open-webui:
   extraEnvVars:
     - name: ENABLE_OLLAMA_API
       value: "true"
+  # SSO: point to internal Keycloak (browser redirect only works with Ingress in prod)
+  sso:
+    enabled: true
+    enableSignup: true
+    oidc:
+      enabled: true
+      clientId: "open-webui"
+      # Reference the chart-generated secret (CI release name is "llm" → "llm-llm-stack-secrets")
+      clientExistingSecret: "llm-llm-stack-secrets"
+      clientExistingSecretKey: "oidcClientSecret"
+      providerUrl: "http://llm-keycloakx-http.llm.svc.cluster.local:80/auth/realms/llm-stack"
+      providerName: "Keycloak"
+      scopes: "openid email profile"
 
 ollama:
   enabled: true
@@ -40,7 +53,27 @@ qdrant:
     size: 1Gi
 
 keycloak:
-  enabled: false
+  enabled: true
+  realmImport:
+    enabled: true
+  adminPassword: "admin"   # matches KEYCLOAK_ADMIN_PASSWORD below
+
+# keycloakx sub-chart overrides for kind (no TLS, no strict hostname)
+keycloakx:
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start"
+    - "--import-realm"
+    - "--hostname-strict=false"
+    - "--http-enabled=true"
+  # extraEnv is a string in keycloakx chart (not a list)
+  extraEnv: |
+    - name: KEYCLOAK_ADMIN
+      value: admin
+    - name: KEYCLOAK_ADMIN_PASSWORD
+      value: admin
+    - name: KC_PROXY
+      value: "edge"
 
 litellm:
   enabled: false

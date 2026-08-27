@@ -49,7 +49,7 @@ Chart label
 {{- end }}
 
 {{/*
-Keycloak internal service URL.
+Keycloak internal service base URL (no context path).
 The keycloakx chart produces a service named <release>-keycloakx-http.
 Verified against keycloakx chart templates in T2.
 */}}
@@ -58,13 +58,22 @@ Verified against keycloakx chart templates in T2.
 {{- end }}
 
 {{/*
+Keycloak internal URL including the /auth context path.
+keycloakx chart sets KC_HTTP_RELATIVE_PATH=/auth by default.
+*/}}
+{{- define "llm-stack.keycloakAuthUrl" -}}
+{{- printf "%s/auth" (include "llm-stack.keycloakInternalUrl" .) }}
+{{- end }}
+
+{{/*
 OIDC issuer URL — either external or Keycloak-managed.
+For Keycloak, this is the realm URL (includes /auth context path).
 */}}
 {{- define "llm-stack.oidcIssuerUrl" -}}
 {{- if .Values.oidc.external.enabled }}
 {{- .Values.oidc.external.issuerUrl }}
 {{- else }}
-{{- printf "%s/realms/llm-stack" (include "llm-stack.keycloakInternalUrl" .) }}
+{{- printf "%s/realms/llm-stack" (include "llm-stack.keycloakAuthUrl" .) }}
 {{- end }}
 {{- end }}
 

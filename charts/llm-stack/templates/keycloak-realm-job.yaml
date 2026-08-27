@@ -10,11 +10,16 @@ metadata:
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
 data:
   llm-stack-realm.json: |
     {
       "realm": "llm-stack",
       "enabled": true,
+      "displayName": "LLM Stack",
+      "registrationAllowed": false,
+      "loginWithEmailAllowed": true,
+      "sslRequired": "none",
       "clients": [
         {
           "clientId": "open-webui",
@@ -23,7 +28,8 @@ data:
           "secret": "$(env:OIDC_CLIENT_SECRET)",
           "redirectUris": ["*"],
           "webOrigins": ["*"],
-          "standardFlowEnabled": true
+          "standardFlowEnabled": true,
+          "protocol": "openid-connect"
         }
       ],
       "roles": {
@@ -61,7 +67,7 @@ spec:
             - sh
             - -c
             - |
-              until curl -sf {{ include "llm-stack.keycloakInternalUrl" . }}/realms/master/.well-known/openid-configuration > /dev/null; do
+              until curl -sf {{ include "llm-stack.keycloakAuthUrl" . }}/realms/master/.well-known/openid-configuration > /dev/null; do
                 echo "Waiting for Keycloak..."
                 sleep 5
               done
@@ -70,14 +76,18 @@ spec:
           image: quay.io/adorsys/keycloak-config-cli:latest-24.0.5
           env:
             - name: KEYCLOAK_URL
-              value: {{ include "llm-stack.keycloakInternalUrl" . | quote }}
+              value: {{ include "llm-stack.keycloakAuthUrl" . | quote }}
             - name: KEYCLOAK_USER
-              value: admin
+              value: {{ .Values.keycloak.adminUser | default "admin" | quote }}
             - name: KEYCLOAK_PASSWORD
+              {{- if .Values.keycloak.adminPassword }}
+              value: {{ .Values.keycloak.adminPassword | quote }}
+              {{- else }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "llm-stack.secretName" . }}
                   key: keycloakAdminPassword
+              {{- end }}
             - name: OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
