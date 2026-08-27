@@ -26,7 +26,10 @@ data:
   # Only the URL goes here — other SSO env vars (ENABLE_OAUTH_SIGNUP, OAUTH_CLIENT_ID,
   # OAUTH_PROVIDER_NAME) are set by the open-webui chart from its sso.* values
   # and would be silently overridden if duplicated here.
-  OPENID_PROVIDER_URL: {{ include "llm-stack.oidcIssuerUrl" . | quote }}
+  # Open WebUI 0.11.x passes this URL verbatim to authlib as server_metadata_url.
+  # authlib does NOT append /.well-known/openid-configuration — we must provide
+  # the full discovery URL, not just the realm base URL.
+  OPENID_PROVIDER_URL: {{ printf "%s/.well-known/openid-configuration" (include "llm-stack.oidcIssuerUrl" .) | quote }}
   {{- end }}
   {{- if .Values.qdrant.enabled }}
   VECTOR_DB: "qdrant"

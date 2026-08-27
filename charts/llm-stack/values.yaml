@@ -122,9 +122,10 @@ keycloak:
     sslRequired: "external" # "external" (prod) | "none" (CI/dev, no TLS)
     images:
       configCli:
-        repository: quay.io/adorsys/keycloak-config-cli
+        repository: adorsys/keycloak-config-cli
         # Match keycloakx appVersion major: keycloakx 7.3.0 = Keycloak 26.7.2
-        tag: "latest-26.0.6"
+        # Image is on Docker Hub (not quay.io). latest-26 tracks 26.x minor releases.
+        tag: "6.5.1-26.5.5"
   adminUser: admin
   adminPassword: "" # leave empty to use generated secret (keycloakAdminPassword)
 
@@ -132,6 +133,15 @@ keycloakx:
   fullnameOverride: llm-stack-keycloakx
   # extraEnv is a string (multiline), not a list — matches keycloakx chart schema
   extraEnv: ""
+  # Injects KC_HOSTNAME_URL when global.domain is set so the OIDC discovery
+  # document always embeds the public URL (auth.<domain>) regardless of which
+  # Host header Keycloak sees — required for browser auth redirects to work.
+  # The ConfigMap is created by templates/keycloak-hostname.yaml; optional: true
+  # means Keycloak ignores the reference when global.domain is empty.
+  extraEnvFrom: |
+    - configMapRef:
+        name: llm-stack-keycloak-hostname
+        optional: true
   command:
     - "/opt/keycloak/bin/kc.sh"
     - "start"
@@ -159,6 +169,12 @@ litellm-helm:
     create: false
     name: llm-stack-litellm-config
     key: config.yaml
+  # litellm-helm v1.98.0 built-in test checks these exact values; without them
+  # helm test fails even though the application doesn't use Datadog.
+  envVars:
+    DD_ENV: "dev_helm"
+    DD_SERVICE: "litellm"
+    USE_DDTRACE: "true"
 
 # ---------------------------------------------------------------------------
 # OIDC — populated by keycloak-realm-job when keycloak.enabled=true

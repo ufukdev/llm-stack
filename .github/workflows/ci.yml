@@ -207,8 +207,7 @@ jobs:
           helm install llm-stack charts/llm-stack \
             --kube-context kind-netpol \
             --namespace llm --create-namespace \
-            -f charts/llm-stack/ci/default-values.yaml \
-            --set networkPolicy.enabled=true \
+            -f charts/llm-stack/ci/netpol-values.yaml \
             --timeout 15m --wait
 
       - name: Egress must be blocked
@@ -221,8 +220,22 @@ jobs:
           fi
           echo "OK: external egress blocked"
 
-      - name: Application must still work
-        run: helm test llm-stack --kube-context kind-netpol --namespace llm --timeout 5m
+      - name: Internal traffic must still work
+        run: |
+          # Verify pod-to-pod connectivity within the llm namespace is not blocked.
+          # helm test is not used here because test-litellm-models requires loaded
+          # models, which are intentionally not pulled in the netpol scenario.
+          kubectl --context kind-netpol -n llm run internal-check \
+            --rm -i --restart=Never --image=curlimages/curl:8.8.0 \
+            -- sh -c '
+              set -e
+              curl -sf http://llm-stack-litellm.llm.svc.cluster.local:4000/health \
+                && echo "OK: LiteLLM reachable"
+              curl -sf http://llm-stack-open-webui.llm.svc.cluster.local/health \
+                && echo "OK: Open WebUI reachable"
+              curl -sf http://llm-stack-qdrant.llm.svc.cluster.local:6333/readyz \
+                && echo "OK: Qdrant reachable"
+            '
 
   schema-validate:
     name: Schema validation

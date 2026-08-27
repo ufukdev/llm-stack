@@ -1,0 +1,18 @@
+{{- if and .Values.keycloak.enabled .Values.global.domain }}
+{{- $frontendUrl := include "llm-stack.keycloakFrontendUrl" . }}
+{{- if $frontendUrl }}
+# ConfigMap referenced by keycloakx.extraEnvFrom (optional: true).
+# Sets KC_HOSTNAME_URL so Keycloak always embeds the public-facing URL
+# in its OIDC discovery document — enabling browser-initiated auth flows
+# even when Open WebUI fetches discovery via the internal service address.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-keycloak-hostname
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+data:
+  KC_HOSTNAME_URL: {{ $frontendUrl | quote }}
+{{- end }}
+{{- end }}

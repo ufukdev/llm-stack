@@ -18,11 +18,6 @@ networking:
   podSubnet: 192.168.0.0/16
 EOF
 
-echo "Waiting for control-plane node to be registered..."
-kubectl --context "kind-${CLUSTER_NAME}" wait \
-  --for=condition=Ready node/"${CLUSTER_NAME}-control-plane" \
-  --timeout=90s
-
 echo "Installing Calico ${CALICO_VERSION}..."
 kubectl --context "kind-${CLUSTER_NAME}" apply \
   -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml"
@@ -34,6 +29,11 @@ kubectl --context "kind-${CLUSTER_NAME}" \
   --selector k8s-app=calico-node \
   --timeout=180s
 
+echo "Waiting for control-plane node to be Ready..."
+kubectl --context "kind-${CLUSTER_NAME}" wait \
+  --for=condition=Ready node/"${CLUSTER_NAME}-control-plane" \
+  --timeout=90s
+
 echo ""
 echo "Cluster '${CLUSTER_NAME}' is ready."
 echo "Context: kind-${CLUSTER_NAME}"
@@ -41,6 +41,5 @@ echo "Test NetworkPolicy with:"
 echo "  helm install llm-stack charts/llm-stack \\"
 echo "    --kube-context kind-${CLUSTER_NAME} \\"
 echo "    -n llm --create-namespace \\"
-echo "    -f charts/llm-stack/ci/default-values.yaml \\"
-echo "    --set networkPolicy.enabled=true \\"
+echo "    -f charts/llm-stack/ci/netpol-values.yaml \\"
 echo "    --timeout 15m --wait"

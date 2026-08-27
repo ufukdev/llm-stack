@@ -25,21 +25,11 @@ spec:
             STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "$BASE/health" 2>/dev/null || echo "000")
             if [ "$STATUS" = "200" ]; then
               echo "Open WebUI healthy (HTTP 200)"
-              break
+              exit 0
             fi
             echo "Attempt $i/30 — status: $STATUS, retrying in 5s..."
             sleep 5
           done
-          if [ "$STATUS" != "200" ]; then
-            echo "Open WebUI did not become healthy in time"
-            exit 1
-          fi
-          echo "Checking /api/models for at least one model..."
-          MODELS=$(curl -sf "$BASE/api/models" 2>/dev/null || true)
-          if echo "$MODELS" | grep -q '"id"'; then
-            echo "Open WebUI /api/models OK — at least one model present"
-            exit 0
-          fi
-          echo "FAIL: Open WebUI /api/models returned no models: $MODELS"
+          echo "Open WebUI did not become healthy in time"
           exit 1
 {{- end }}

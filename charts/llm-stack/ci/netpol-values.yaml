@@ -1,0 +1,41 @@
+# CI scenario: NetworkPolicy enforcement with Calico CNI
+# Used by hack/kind-with-calico.sh / the networkpolicy CI job.
+#
+# Key difference from default-values: model pull is disabled because
+# the NetworkPolicy default-deny-egress blocks outbound connections from
+# pod network namespaces, which prevents Ollama from reaching registry.ollama.ai.
+# Image pulls (done by the kubelet container runtime) are unaffected.
+
+global:
+  domain: "local.test"
+
+keycloak:
+  realmImport:
+    sslRequired: "none"
+  adminPassword: "admin"
+
+keycloakx:
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start"
+    - "--import-realm"
+    - "--hostname-strict=false"
+    - "--http-enabled=true"
+  extraEnv: |
+    - name: KEYCLOAK_ADMIN
+      value: admin
+    - name: KEYCLOAK_ADMIN_PASSWORD
+      value: admin
+    - name: KC_PROXY
+      value: "edge"
+
+ollama:
+  ollama:
+    models:
+      pull: []   # model pull requires internet; blocked by NetworkPolicy by design
+  persistence:
+    enabled: true
+    size: 5Gi
+
+networkPolicy:
+  enabled: true

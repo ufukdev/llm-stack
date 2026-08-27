@@ -7,14 +7,20 @@
 # -------------
 # 1. Mirror the following images to your private registry:
 #
-#    Source                                      → Target
-#    --------------------------------------------------
-#    ghcr.io/open-webui/open-webui:<tag>        → registry.internal/open-webui/open-webui:<tag>
-#    ollama/ollama:<tag>                         → registry.internal/ollama/ollama:<tag>
-#    quay.io/keycloak/keycloak:<tag>             → registry.internal/keycloak/keycloak:<tag>
-#    qdrant/qdrant:<tag>                         → registry.internal/qdrant/qdrant:<tag>
-#    ghcr.io/berriai/litellm:<tag>              → registry.internal/berriai/litellm:<tag>
-#    curlimages/curl:8.8.0                      → registry.internal/curlimages/curl:8.8.0
+#    Source                                                    → Target
+#    ------------------------------------------------------------------
+#    ghcr.io/open-webui/open-webui:<tag>                      → registry.internal/open-webui/open-webui:<tag>
+#    redis:7.4.2-alpine3.21                                   → registry.internal/redis:7.4.2-alpine3.21
+#    ollama/ollama:<tag>                                      → registry.internal/ollama/ollama:<tag>
+#    quay.io/keycloak/keycloak:<tag>                          → registry.internal/keycloak/keycloak:<tag>
+#    qdrant/qdrant:<tag>                                      → registry.internal/qdrant/qdrant:<tag>
+#    curlimages/curl:8.8.0                                    → registry.internal/curlimages/curl:8.8.0
+#    adorsys/keycloak-config-cli:6.5.1-26.5.5                → registry.internal/adorsys/keycloak-config-cli:6.5.1-26.5.5
+#    # Only when litellm.enabled=true:
+#    ghcr.io/berriai/litellm-database:<tag>                   → registry.internal/berriai/litellm-database:<tag>
+#    docker.io/bitnamilegacy/postgresql:16.2.0-debian-12-r6   → registry.internal/bitnamilegacy/postgresql:16.2.0-debian-12-r6
+#    busybox                                                  → registry.internal/busybox
+#    registry.suse.com/bci/bci-base:latest                   → registry.internal/bci/bci-base:latest
 #
 # 2. If your registry requires authentication, create an image pull secret:
 #      kubectl create secret docker-registry regcred \
