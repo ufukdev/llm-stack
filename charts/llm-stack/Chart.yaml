@@ -5,8 +5,8 @@ description: |
   Designed for teams that cannot send data outside and must
   integrate with their existing identity provider.
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.1.1
+appVersion: "0.1.1"
 home: https://github.com/ufukdev/llm-stack
 maintainers:
   - name: ufukdev

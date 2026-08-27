@@ -23,6 +23,17 @@ kubectl --context "kind-${CLUSTER_NAME}" apply \
   -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml"
 
 echo "Waiting for Calico pods to be ready (up to 3 min)..."
+# kubectl wait fails immediately with "no matching resources found" if the
+# pods haven't been created yet. Poll until at least one pod exists first.
+for i in $(seq 1 30); do
+  COUNT=$(kubectl --context "kind-${CLUSTER_NAME}" \
+    -n kube-system get pod \
+    --selector k8s-app=calico-node \
+    --no-headers 2>/dev/null | wc -l)
+  [ "${COUNT}" -gt 0 ] && break
+  echo "  waiting for calico-node pods to appear... (${i}/30)"
+  sleep 3
+done
 kubectl --context "kind-${CLUSTER_NAME}" \
   -n kube-system wait \
   --for=condition=Ready pod \
@@ -32,7 +43,7 @@ kubectl --context "kind-${CLUSTER_NAME}" \
 echo "Waiting for control-plane node to be Ready..."
 kubectl --context "kind-${CLUSTER_NAME}" wait \
   --for=condition=Ready node/"${CLUSTER_NAME}-control-plane" \
-  --timeout=90s
+  --timeout=120s
 
 echo ""
 echo "Cluster '${CLUSTER_NAME}' is ready."

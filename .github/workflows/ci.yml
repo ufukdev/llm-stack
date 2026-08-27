@@ -91,7 +91,7 @@ jobs:
             --namespace llm \
             --create-namespace \
             -f charts/llm-stack/ci/${{ matrix.scenario }}.yaml \
-            --timeout 10m \
+            --timeout 15m \
             --wait
 
       - name: Run helm tests
