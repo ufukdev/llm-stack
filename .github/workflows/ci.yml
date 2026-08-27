@@ -98,6 +98,86 @@ jobs:
           helm test llm --namespace llm --timeout 5m \
             --filter name=llm-stack-test-webui-health
 
+  secret-stability:
+    name: Secret stability
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.17.0"
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: secret-stability
+
+      - name: Add chart repos
+        run: |
+          helm repo add codecentric https://codecentric.github.io/helm-charts
+          helm repo add open-webui   https://helm.openwebui.com/
+          helm repo add qdrant       https://qdrant.github.io/qdrant-helm
+          helm repo add ollama       https://otwld.github.io/ollama-helm/
+          helm repo update
+
+      - name: Update chart dependencies
+        run: helm dependency update charts/llm-stack
+
+      - name: Install chart
+        run: |
+          helm install llm charts/llm-stack \
+            --namespace llm \
+            --create-namespace \
+            -f charts/llm-stack/ci/kind-values.yaml \
+            --timeout 10m \
+            --wait
+
+      - name: Capture initial secret hash
+        id: hash0
+        run: |
+          H=$(kubectl get secret -n llm llm-stack-secrets -o json \
+               | jq -cS '.data' | sha256sum | awk '{print $1}')
+          echo "hash=$H" >> "$GITHUB_OUTPUT"
+
+      - name: Upgrade (no-op)
+        run: |
+          helm upgrade llm charts/llm-stack \
+            --namespace llm \
+            -f charts/llm-stack/ci/kind-values.yaml \
+            --timeout 10m \
+            --wait
+
+      - name: Verify secret unchanged after first upgrade
+        run: |
+          H=$(kubectl get secret -n llm llm-stack-secrets -o json \
+               | jq -cS '.data' | sha256sum | awk '{print $1}')
+          if [ "$H" != "${{ steps.hash0.outputs.hash }}" ]; then
+            echo "Secret rotated on upgrade 1: $H != ${{ steps.hash0.outputs.hash }}"
+            exit 1
+          fi
+
+      - name: Upgrade (second pass)
+        run: |
+          helm upgrade llm charts/llm-stack \
+            --namespace llm \
+            -f charts/llm-stack/ci/kind-values.yaml \
+            --timeout 10m \
+            --wait
+
+      - name: Verify secret unchanged after second upgrade
+        run: |
+          H=$(kubectl get secret -n llm llm-stack-secrets -o json \
+               | jq -cS '.data' | sha256sum | awk '{print $1}')
+          if [ "$H" != "${{ steps.hash0.outputs.hash }}" ]; then
+            echo "Secret rotated on upgrade 2: $H != ${{ steps.hash0.outputs.hash }}"
+            exit 1
+          fi
+          echo "Secret stable across 2 upgrades: $H"
+
   schema-validate:
     name: Schema validation
     runs-on: ubuntu-latest
