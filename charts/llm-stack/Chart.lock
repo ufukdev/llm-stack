@@ -1,0 +1,18 @@
+dependencies:
+- name: open-webui
+  repository: https://helm.openwebui.com/
+  version: 16.1.0
+- name: keycloakx
+  repository: https://codecentric.github.io/helm-charts
+  version: 7.3.0
+- name: qdrant
+  repository: https://qdrant.github.io/qdrant-helm
+  version: 1.19.0
+- name: ollama
+  repository: https://otwld.github.io/ollama-helm/
+  version: 1.78.0
+- name: litellm-helm
+  repository: oci://ghcr.io/berriai
+  version: 1.98.0
+digest: sha256:649e1221775e6c2237585b9952c6f849ae0a0d36758153541c0f681b0486e303
+generated: "2026-08-27T10:15:13.735238754+03:00"

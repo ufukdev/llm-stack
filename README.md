@@ -27,27 +27,38 @@ A self-hosted LLM stack as a single Helm umbrella chart. Designed for teams that
 - A default StorageClass (for persistent volumes)
 - Optional: an Ingress controller (nginx) and cert-manager for TLS
 
-## Quick start (kind)
+## Installation
+
+### From Helm repository (recommended)
+
+```bash
+helm repo add llm-stack https://ufukdev.github.io/llm-stack
+helm repo update
+
+helm install llm-stack llm-stack/llm-stack \
+  --namespace llm --create-namespace \
+  --set global.domain=example.com
+```
+
+> **Note:** GitHub Pages must be enabled on the `gh-pages` branch for
+> `helm repo add` to work. The release workflow publishes there automatically
+> on every merge to `main` that touches `charts/`.
+
+### From source (development)
 
 ```bash
 # Create a local cluster
 kind create cluster --name llm-stack
 
-# Add required chart repositories
-helm repo add open-webui   https://helm.openwebui.com/
-helm repo add codecentric  https://codecentric.github.io/helm-charts
-helm repo add qdrant       https://qdrant.github.io/qdrant-helm
-helm repo add ollama       https://otwld.github.io/ollama-helm/
-helm repo update
+helm dependency update charts/llm-stack
 
-# Install with the local CI values (no Ingress, no SSO, Keycloak disabled)
-helm install llm charts/llm-stack \
+helm install llm-stack charts/llm-stack \
   --kube-context kind-llm-stack \
-  -n llm --create-namespace \
+  --namespace llm --create-namespace \
   -f charts/llm-stack/ci/kind-values.yaml
 
 # Access Open WebUI
-kubectl -n llm port-forward svc/llm-open-webui 8080:80
+kubectl -n llm port-forward svc/llm-stack-open-webui 8080:80
 # Open http://localhost:8080
 ```
 
@@ -65,7 +76,7 @@ All top-level keys are defined in [`charts/llm-stack/values.yaml`](charts/llm-st
 | `ollama.enabled` | `true` | Deploy Ollama for local inference |
 | `qdrant.enabled` | `true` | Deploy Qdrant vector store |
 | `keycloak.enabled` | `true` | Deploy Keycloak for SSO |
-| `litellm.enabled` | `false` | Deploy LiteLLM gateway |
+| `litellm.enabled` | `true` | Deploy LiteLLM gateway |
 | `networkPolicy.enabled` | `false` | Deploy NetworkPolicies (requires Calico/Cilium) |
 | `ingress.enabled` | `false` | Deploy Ingress resources |
 
@@ -140,8 +151,12 @@ oidc:
   external:
     enabled: true
     issuerUrl: "https://sso.example.com/auth/realms/my-realm"
-    clientId: "open-webui"
     clientSecret: "..."   # use --set, never commit
+
+open-webui:
+  sso:
+    oidc:
+      clientId: "open-webui"   # must match the client registered in your IdP
 ```
 
 See [`examples/values-external-idp.yaml`](charts/llm-stack/examples/values-external-idp.yaml) and [`ci/external-oidc-values.yaml`](charts/llm-stack/ci/external-oidc-values.yaml).
@@ -149,6 +164,48 @@ See [`examples/values-external-idp.yaml`](charts/llm-stack/examples/values-exter
 ## SSO / Keycloak
 
 When `keycloak.enabled=true`, a post-install Job imports the `llm-stack` realm automatically. The realm includes an `open-webui` OIDC client, `llm-user`/`llm-admin` roles, and matching groups.
+
+### SSO with a real domain (production)
+
+When `global.domain` is set the chart automatically configures `KC_HOSTNAME_URL` so Keycloak always advertises its public address (`auth.<domain>`) in the OIDC discovery document — regardless of which internal address Open WebUI uses to fetch it. Both the browser redirect and the server-side token exchange therefore reach Keycloak through the Ingress.
+
+```yaml
+global:
+  domain: "mycompany.com"
+
+ingress:
+  enabled: true
+  className: nginx
+  tls:
+    issuer: letsencrypt   # cert-manager ClusterIssuer
+```
+
+With this config SSO works end-to-end:
+
+```
+Browser → https://chat.mycompany.com
+        → "Sign in with Keycloak"
+        → https://auth.mycompany.com/auth/realms/llm-stack/...  (Keycloak login page)
+        → back to Open WebUI with a valid session
+```
+
+### SSO with port-forward (local dev)
+
+Port-forward cannot provide SSO because the browser cannot resolve the internal Kubernetes service address (`llm-stack-keycloakx-http.llm.svc.cluster.local`) that Keycloak embeds in redirect URLs when no public domain is configured.
+
+**Workaround — skip SSO and register with email/password:**
+
+```bash
+# Start port-forward
+kubectl -n llm port-forward svc/llm-stack-open-webui 8080:80
+
+# Create the first (admin) account via API
+curl -X POST http://localhost:8080/api/v1/auths/signup \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Admin","email":"admin@local.test","password":"changeme"}'
+```
+
+Then open `http://localhost:8080` and sign in with email/password. The first account is automatically granted the `admin` role.
 
 See [`docs/sso.md`](docs/sso.md) for full details.
 

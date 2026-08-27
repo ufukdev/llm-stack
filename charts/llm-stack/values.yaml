@@ -2,18 +2,34 @@
 # Sub-chart values are nested under the chart's name as declared in Chart.yaml.
 # See charts/llm-stack/ci/kind-values.yaml for a minimal working example.
 
+# Pin the fullname so all chart-owned resources (secrets, jobs, configmaps)
+# get stable names regardless of the Helm release name used at install time.
+# This is what makes litellm-helm.masterkeySecretName and secret cross-references
+# correct for any `helm install <anything> charts/llm-stack` invocation.
+# Override only if you deploy multiple instances in the same namespace.
+fullnameOverride: "llm-stack"
+
+# ---------------------------------------------------------------------------
+# Shared utility images — override for air-gapped deployments
+# ---------------------------------------------------------------------------
+images:
+  curl:
+    repository: curlimages/curl
+    tag: "8.8.0"
+
 global:
-  domain: ""          # e.g. example.com — used for Ingress host construction
-  storageClass: ""    # leave empty to use cluster default
+  domain: "" # e.g. example.com — used for Ingress host construction
+  storageClass: "" # leave empty to use cluster default
 
 # ---------------------------------------------------------------------------
 # Inference mode: "local" (Ollama) or "external" (bring your own endpoint)
 # ---------------------------------------------------------------------------
 inference:
-  mode: local         # local | external
+  mode: local # local | external
   external:
-    baseUrl: ""       # required when mode=external
-    apiKey: ""        # optional
+    baseUrl: "" # required when mode=external
+    apiKey: "" # optional
+    modelName: "external" # model_name used in litellm model_list; override if the endpoint expects a specific name
 
 # ---------------------------------------------------------------------------
 # Open WebUI — condition key: openWebui.enabled
@@ -21,22 +37,52 @@ inference:
 # ---------------------------------------------------------------------------
 openWebui:
   enabled: true
-  host: ""            # overrides global.domain-based host when set
+  host: "" # overrides global.domain-based host when set
 
 open-webui:
+  fullnameOverride: llm-stack-open-webui
   persistence:
     enabled: true
     size: 2Gi
   ollama:
-    enabled: false    # managed separately by the ollama sub-chart
-  # ollamaUrls is the correct way to point Open WebUI at an external Ollama
-  # (verified against open-webui chart v16.1.0)
+    enabled: false # managed separately by the ollama sub-chart
   ollamaUrls: []
   pipelines:
     enabled: false
-  extraEnvVars:
-    - name: ENABLE_OLLAMA_API
-      value: "true"
+  # Route all model traffic through LiteLLM (OpenAI-compatible gateway).
+  # The URL uses tpl so .Release.Namespace expands correctly at install time.
+  enableOpenaiApi: true
+  openaiBaseApiUrl: "http://llm-stack-litellm.{{ .Release.Namespace }}.svc.cluster.local:4000/v1"
+  openaiApiKeyExistingSecret: "llm-stack-secrets"
+  openaiApiKeyExistingSecretKey: "litellmMasterKey"
+  # Dynamic env vars (OIDC URLs, Qdrant URI) come from our ConfigMap.
+  # optional=true so the envFrom is a no-op when keycloak.enabled=false.
+  extraEnvFrom:
+    - configMapRef:
+        name: llm-stack-webui-env
+        optional: true
+  # SSO defaults — wired to the chart-generated Keycloak realm.
+  # existingConfig tells the open-webui chart to read OPENID_PROVIDER_URL
+  # from the ConfigMap instead of setting an explicit (empty) env value,
+  # which would otherwise win over envFrom (explicit env beats envFrom in K8s).
+  sso:
+    enabled: true
+    enableSignup: true
+    oidc:
+      enabled: true
+      clientId: "open-webui"
+      clientExistingSecret: "llm-stack-secrets"
+      clientExistingSecretKey: "oidcClientSecret"
+      existingConfig: "llm-stack-webui-env"
+      existingConfigProviderUrlKey: "OPENID_PROVIDER_URL"
+      providerUrl: ""
+      providerName: "Keycloak"
+      scopes: "openid email profile"
+  # Privacy settings and RAG configuration live in the webui-env ConfigMap
+  # (templates/webui-env.yaml) so they survive user overrides to extraEnvVars.
+  # Helm replaces lists on override — settings in extraEnvVars would be silently
+  # dropped whenever a user adds their own env var here.
+  extraEnvVars: []
 
 # ---------------------------------------------------------------------------
 # Ollama (local inference)
@@ -44,10 +90,12 @@ open-webui:
 # ---------------------------------------------------------------------------
 ollama:
   enabled: true
+  fullnameOverride: llm-stack-ollama
   ollama:
     models:
       pull:
         - qwen2.5:0.5b
+        - nomic-embed-text
   persistence:
     enabled: true
     size: 10Gi
@@ -58,6 +106,7 @@ ollama:
 # ---------------------------------------------------------------------------
 qdrant:
   enabled: true
+  fullnameOverride: llm-stack-qdrant
   persistence:
     size: 5Gi
 
@@ -70,12 +119,29 @@ keycloak:
   enabled: true
   realmImport:
     enabled: true
+    sslRequired: "external" # "external" (prod) | "none" (CI/dev, no TLS)
+    images:
+      configCli:
+        repository: adorsys/keycloak-config-cli
+        # Match keycloakx appVersion major: keycloakx 7.3.0 = Keycloak 26.7.2
+        # Image is on Docker Hub (not quay.io). latest-26 tracks 26.x minor releases.
+        tag: "6.5.1-26.5.5"
   adminUser: admin
-  adminPassword: ""    # leave empty to use generated secret (keycloakAdminPassword)
+  adminPassword: "" # leave empty to use generated secret (keycloakAdminPassword)
 
 keycloakx:
+  fullnameOverride: llm-stack-keycloakx
   # extraEnv is a string (multiline), not a list — matches keycloakx chart schema
   extraEnv: ""
+  # Injects KC_HOSTNAME_URL when global.domain is set so the OIDC discovery
+  # document always embeds the public URL (auth.<domain>) regardless of which
+  # Host header Keycloak sees — required for browser auth redirects to work.
+  # The ConfigMap is created by templates/keycloak-hostname.yaml; optional: true
+  # means Keycloak ignores the reference when global.domain is empty.
+  extraEnvFrom: |
+    - configMapRef:
+        name: llm-stack-keycloak-hostname
+        optional: true
   command:
     - "/opt/keycloak/bin/kc.sh"
     - "start"
@@ -87,23 +153,28 @@ keycloakx:
 # Sub-chart values under "litellm-helm:" (matches Chart.yaml name)
 # ---------------------------------------------------------------------------
 litellm:
-  enabled: false
+  enabled: true
 
 litellm-helm:
-  # masterkeySecretName must match the release-specific fullname-secrets name.
-  # Default assumes `helm install llm-stack charts/llm-stack` (release = chart name).
-  # Override in your values if using a different release name.
+  fullnameOverride: llm-stack-litellm
+  # Secret name matches llm-stack.secretName, stable via fullnameOverride above.
   masterkeySecretName: llm-stack-secrets
   masterkeySecretKey: litellmMasterKey
   db:
     deployStandalone: true
-  proxy_config:
-    # Populated per environment — see ci/kind-values.yaml for a local example.
-    # For local inference, set api_base to the Ollama service URL.
-    # For external inference, set api_base to your endpoint.
-    model_list: []
-    general_settings:
-      master_key: os.environ/PROXY_MASTER_KEY
+  # Use our chart-generated ConfigMap instead of litellm-helm's proxy_config rendering.
+  # The ConfigMap is produced by templates/litellm-config.yaml from inference.* values.
+  # NOTE: the litellm-helm chart uses proxyConfigMap (not configmap) for this control.
+  proxyConfigMap:
+    create: false
+    name: llm-stack-litellm-config
+    key: config.yaml
+  # litellm-helm v1.98.0 built-in test checks these exact values; without them
+  # helm test fails even though the application doesn't use Datadog.
+  envVars:
+    DD_ENV: "dev_helm"
+    DD_SERVICE: "litellm"
+    USE_DDTRACE: "true"
 
 # ---------------------------------------------------------------------------
 # OIDC — populated by keycloak-realm-job when keycloak.enabled=true
@@ -113,14 +184,18 @@ oidc:
   external:
     enabled: false
     issuerUrl: ""
-    clientId: ""
     clientSecret: ""
 
 # ---------------------------------------------------------------------------
 # NetworkPolicy (requires a CNI that enforces policies, e.g. Calico)
 # ---------------------------------------------------------------------------
 networkPolicy:
-  enabled: false
+  enabled: true
+  # Opt-in egress CIDR whitelist — only active when enabled=true.
+  # Add specific IP ranges (e.g. an internal proxy or private registry) when
+  # pods must reach known external endpoints over HTTPS.
+  # Example: ["10.0.0.0/8", "192.168.1.100/32"]
+  allowedEgressCIDRs: []
 
 # ---------------------------------------------------------------------------
 # Ingress
@@ -129,8 +204,9 @@ ingress:
   enabled: false
   className: ""
   tls:
-    secretName: ""    # leave empty to use cert-manager annotation
-    issuer: ""        # cert-manager ClusterIssuer name
+    webuiSecretName: ""    # TLS secret for chat.<domain>; leave empty for cert-manager
+    keycloakSecretName: "" # TLS secret for auth.<domain>; leave empty for cert-manager
+    issuer: "" # cert-manager ClusterIssuer name
 
 # ---------------------------------------------------------------------------
 # Shared secrets — generated on first install, stable across upgrades

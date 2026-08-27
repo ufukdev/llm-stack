@@ -1,20 +1,5 @@
-{{/*
-  webui-env.yaml — ConfigMap for Open WebUI environment variables that require
-  dynamic values (Keycloak/OIDC URLs, Qdrant URL) derived from chart values.
-
-  To inject these env vars into Open WebUI, add this to your values:
-    open-webui:
-      extraEnvFrom:
-        - configMapRef:
-            name: <fullname>-webui-env   # e.g. llm-stack-webui-env
-
-  For CI (release=llm), the ConfigMap is named llm-llm-stack-webui-env.
-  Static env vars (VECTOR_DB, ENABLE_OLLAMA_API) are set directly in
-  open-webui.extraEnvVars in the values files to avoid this dependency.
-*/}}
 {{- if .Values.openWebui.enabled }}
 {{- $oidcEnabled := or .Values.keycloak.enabled .Values.oidc.external.enabled }}
-{{- if or $oidcEnabled .Values.qdrant.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -23,19 +8,31 @@ metadata:
   labels:
     {{- include "llm-stack.labels" . | nindent 4 }}
 data:
-  {{- if $oidcEnabled }}
-  ENABLE_OAUTH_SIGNUP: "true"
-  OAUTH_PROVIDER_NAME: "Keycloak"
-  OPENID_PROVIDER_URL: {{ include "llm-stack.oidcIssuerUrl" . | quote }}
-  {{- if .Values.oidc.external.enabled }}
-  OAUTH_CLIENT_ID: {{ .Values.oidc.external.clientId | quote }}
-  {{- else }}
-  OAUTH_CLIENT_ID: "open-webui"
+  # Privacy: disable all external call-home behaviour by default.
+  # Placed here (not in extraEnvVars) so user overrides to extraEnvVars
+  # do not silently drop these settings — Helm replaces lists, not merges them.
+  ENABLE_OLLAMA_API: "false"
+  ENABLE_COMMUNITY_SHARING: "false"
+  SCARF_NO_ANALYTICS: "true"
+  ANONYMIZED_TELEMETRY: "false"
+  HF_HUB_OFFLINE: "1"
+  {{- if .Values.ollama.enabled }}
+  # RAG embedding via local Ollama — requires nomic-embed-text to be pulled.
+  RAG_EMBEDDING_ENGINE: "ollama"
+  RAG_EMBEDDING_MODEL: "nomic-embed-text"
+  RAG_OLLAMA_BASE_URL: {{ printf "http://%s-ollama.%s.svc.cluster.local:11434" (include "llm-stack.fullname" .) .Release.Namespace | quote }}
   {{- end }}
+  {{- if $oidcEnabled }}
+  # Only the URL goes here — other SSO env vars (ENABLE_OAUTH_SIGNUP, OAUTH_CLIENT_ID,
+  # OAUTH_PROVIDER_NAME) are set by the open-webui chart from its sso.* values
+  # and would be silently overridden if duplicated here.
+  # Open WebUI 0.11.x passes this URL verbatim to authlib as server_metadata_url.
+  # authlib does NOT append /.well-known/openid-configuration — we must provide
+  # the full discovery URL, not just the realm base URL.
+  OPENID_PROVIDER_URL: {{ printf "%s/.well-known/openid-configuration" (include "llm-stack.oidcIssuerUrl" .) | quote }}
   {{- end }}
   {{- if .Values.qdrant.enabled }}
   VECTOR_DB: "qdrant"
-  QDRANT_URI: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace | quote }}
+  QDRANT_URI: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" (include "llm-stack.fullname" .) .Release.Namespace | quote }}
   {{- end }}
-{{- end }}
 {{- end }}

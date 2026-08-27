@@ -54,7 +54,7 @@ The keycloakx chart produces a service named <release>-keycloakx-http.
 Verified against keycloakx chart templates in T2.
 */}}
 {{- define "llm-stack.keycloakInternalUrl" -}}
-{{- printf "http://%s-keycloakx-http.%s.svc.cluster.local:80" .Release.Name .Release.Namespace }}
+{{- printf "http://%s-keycloakx-http.%s.svc.cluster.local:80" (include "llm-stack.fullname" .) .Release.Namespace }}
 {{- end }}
 
 {{/*
@@ -68,12 +68,33 @@ keycloakx chart sets KC_HTTP_RELATIVE_PATH=/auth by default.
 {{/*
 OIDC issuer URL — either external or Keycloak-managed.
 For Keycloak, this is the realm URL (includes /auth context path).
+Used only for INTERNAL backend-to-Keycloak calls (token exchange, JWKS).
 */}}
 {{- define "llm-stack.oidcIssuerUrl" -}}
 {{- if .Values.oidc.external.enabled }}
 {{- .Values.oidc.external.issuerUrl }}
 {{- else }}
 {{- printf "%s/realms/llm-stack" (include "llm-stack.keycloakAuthUrl" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Keycloak public-facing base URL (no /auth context path, no realm).
+When global.domain is set, Keycloak is exposed at auth.<domain>.
+This is set as KC_HOSTNAME_URL so Keycloak embeds this URL in its
+discovery document regardless of the incoming Host header — which
+allows the browser to follow the authorization_endpoint redirect even
+when Open WebUI fetches discovery via the internal service address.
+When global.domain is empty (local port-forward), returns empty string
+and KC_HOSTNAME_URL is left unset (Keycloak falls back to request host).
+*/}}
+{{- define "llm-stack.keycloakFrontendUrl" -}}
+{{- if .Values.global.domain }}
+{{- $scheme := "http" }}
+{{- if or .Values.ingress.tls.keycloakSecretName .Values.ingress.tls.issuer }}
+{{- $scheme = "https" }}
+{{- end }}
+{{- printf "%s://auth.%s" $scheme .Values.global.domain }}
 {{- end }}
 {{- end }}
 

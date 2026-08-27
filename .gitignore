@@ -1,6 +1,6 @@
-# Helm
+# Helm — packaged subchart tarballs are ephemeral, but Chart.lock is committed
+# for reproducible builds (pins digest of OCI charts like litellm-helm).
 charts/llm-stack/charts/
-charts/llm-stack/Chart.lock
 *.tgz
 
 # Secrets / local overrides

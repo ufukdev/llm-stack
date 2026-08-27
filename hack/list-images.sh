@@ -5,7 +5,6 @@ set -euo pipefail
 
 CHART_DIR="$(cd "$(dirname "$0")/.." && pwd)/charts/llm-stack"
 
-helm template llm "${CHART_DIR}" "$@" \
-  | grep -oE 'image: [^\s]+' \
-  | awk '{print $2}' \
+helm template llm-stack "${CHART_DIR}" "$@" \
+  | awk '/^[[:space:]]*image:[[:space:]]/ {gsub(/"|'"'"'/, "", $2); print $2}' \
   | sort -u

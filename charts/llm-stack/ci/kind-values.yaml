@@ -14,37 +14,6 @@ open-webui:
   persistence:
     enabled: true
     size: 1Gi
-  ollama:
-    enabled: false
-  ollamaUrls:
-    - http://llm-ollama.llm.svc.cluster.local:11434
-  pipelines:
-    enabled: false
-  extraEnvVars:
-    - name: ENABLE_OLLAMA_API
-      value: "true"
-    - name: VECTOR_DB
-      value: "qdrant"
-    - name: QDRANT_URI
-      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
-  # LiteLLM gateway as OpenAI-compatible backend
-  # CI release = "llm", so service is llm-litellm.llm.svc.cluster.local
-  openaiBaseApiUrl: "http://llm-litellm.llm.svc.cluster.local:4000/v1"
-  openaiApiKeyExistingSecret: "llm-llm-stack-secrets"
-  openaiApiKeyExistingSecretKey: "litellmMasterKey"
-  # SSO: point to internal Keycloak (browser redirect only works with Ingress in prod)
-  sso:
-    enabled: true
-    enableSignup: true
-    oidc:
-      enabled: true
-      clientId: "open-webui"
-      # Reference the chart-generated secret (CI release name is "llm" → "llm-llm-stack-secrets")
-      clientExistingSecret: "llm-llm-stack-secrets"
-      clientExistingSecretKey: "oidcClientSecret"
-      providerUrl: "http://llm-keycloakx-http.llm.svc.cluster.local:80/auth/realms/llm-stack"
-      providerName: "Keycloak"
-      scopes: "openid email profile"
 
 ollama:
   enabled: true
@@ -65,6 +34,7 @@ keycloak:
   enabled: true
   realmImport:
     enabled: true
+    sslRequired: "none"    # no TLS in kind; production default is "external"
   adminPassword: "admin"   # matches KEYCLOAK_ADMIN_PASSWORD below
 
 # keycloakx sub-chart overrides for kind (no TLS, no strict hostname)
@@ -87,20 +57,8 @@ keycloakx:
 litellm:
   enabled: true
 
-# litellm-helm sub-chart: CI release is "llm" → secret name is "llm-llm-stack-secrets"
-litellm-helm:
-  masterkeySecretName: "llm-llm-stack-secrets"
-  masterkeySecretKey: "litellmMasterKey"
-  db:
-    deployStandalone: true
-  proxy_config:
-    model_list:
-      - model_name: qwen2.5-0.5b
-        litellm_params:
-          model: ollama/qwen2.5:0.5b
-          api_base: "http://llm-ollama.llm.svc.cluster.local:11434"
-    general_settings:
-      master_key: os.environ/PROXY_MASTER_KEY
+# litellm model list is auto-generated from ollama.ollama.models.pull by
+# templates/litellm-config.yaml — no override needed here.
 
 networkPolicy:
   enabled: false

@@ -23,10 +23,18 @@ open-webui:
   pipelines:
     enabled: false
   extraEnvVars:
+    - name: ENABLE_COMMUNITY_SHARING
+      value: "false"
+    - name: SCARF_NO_ANALYTICS
+      value: "true"
+    - name: ANONYMIZED_TELEMETRY
+      value: "false"
+    - name: HF_HUB_OFFLINE
+      value: "1"
     - name: VECTOR_DB
       value: "qdrant"
     - name: QDRANT_URI
-      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
+      value: "http://llm-stack-qdrant.llm.svc.cluster.local:6333"
   openaiBaseApiUrl: "https://api.example.com/v1"
   openaiApiKey: "sk-placeholder"
 

@@ -1,4 +1,7 @@
 {{- if and .Values.keycloak.enabled .Values.keycloak.realmImport.enabled }}
+{{- if not .Values.global.domain }}
+{{- fail "global.domain is required when keycloak.enabled=true (used for redirectUris and webOrigins in the realm)" }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -19,15 +22,15 @@ data:
       "displayName": "LLM Stack",
       "registrationAllowed": false,
       "loginWithEmailAllowed": true,
-      "sslRequired": "none",
+      "sslRequired": {{ .Values.keycloak.realmImport.sslRequired | default "external" | quote }},
       "clients": [
         {
           "clientId": "open-webui",
           "enabled": true,
           "publicClient": false,
           "secret": "$(env:OIDC_CLIENT_SECRET)",
-          "redirectUris": ["*"],
-          "webOrigins": ["*"],
+          "redirectUris": [{{ printf "https://chat.%s/oauth/oidc/callback" .Values.global.domain | quote }}],
+          "webOrigins": [{{ printf "https://chat.%s" .Values.global.domain | quote }}],
           "standardFlowEnabled": true,
           "protocol": "openid-connect"
         }
@@ -62,7 +65,7 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: wait-for-keycloak
-          image: curlimages/curl:8.5.0
+          image: {{ .Values.images.curl.repository }}:{{ .Values.images.curl.tag }}
           command:
             - sh
             - -c
@@ -73,7 +76,7 @@ spec:
               done
       containers:
         - name: realm-import
-          image: quay.io/adorsys/keycloak-config-cli:latest-24.0.5
+          image: {{ .Values.keycloak.realmImport.images.configCli.repository }}:{{ .Values.keycloak.realmImport.images.configCli.tag }}
           env:
             - name: KEYCLOAK_URL
               value: {{ include "llm-stack.keycloakAuthUrl" . | quote }}
