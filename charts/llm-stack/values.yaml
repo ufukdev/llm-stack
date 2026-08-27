@@ -50,12 +50,10 @@ open-webui:
     - configMapRef:
         name: llm-stack-webui-env
         optional: true
-    - secretRef:
-        name: llm-stack-secrets
   # SSO defaults — wired to the chart-generated Keycloak realm.
-  # providerUrl is empty here; it is injected at runtime via the
-  # llm-stack-webui-env ConfigMap (OPENID_PROVIDER_URL), so the URL is
-  # derived from the templated Keycloak internal address.
+  # existingConfig tells the open-webui chart to read OPENID_PROVIDER_URL
+  # from the ConfigMap instead of setting an explicit (empty) env value,
+  # which would otherwise win over envFrom (explicit env beats envFrom in K8s).
   sso:
     enabled: true
     enableSignup: true
@@ -64,7 +62,9 @@ open-webui:
       clientId: "open-webui"
       clientExistingSecret: "llm-stack-secrets"
       clientExistingSecretKey: "oidcClientSecret"
-      providerUrl: ""   # set by llm-stack-webui-env ConfigMap at runtime
+      existingConfig: "llm-stack-webui-env"
+      existingConfigProviderUrlKey: "OPENID_PROVIDER_URL"
+      providerUrl: ""
       providerName: "Keycloak"
       scopes: "openid email profile"
   extraEnvVars:

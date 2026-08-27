@@ -1,0 +1,41 @@
+# CI scenario: default values with only the minimum required field (global.domain)
+# and kind-specific Keycloak overrides (no TLS, plain admin password).
+# Everything else — SSO, LiteLLM, NetworkPolicy, Qdrant — uses chart defaults.
+# This scenario exists specifically to catch regressions on the default install path.
+
+global:
+  domain: "local.test"
+
+# Minimum required: domain is non-empty so the realm import succeeds.
+# sslRequired: "none" because kind has no TLS.
+keycloak:
+  realmImport:
+    sslRequired: "none"
+  adminPassword: "admin"
+
+keycloakx:
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start"
+    - "--import-realm"
+    - "--hostname-strict=false"
+    - "--http-enabled=true"
+  extraEnv: |
+    - name: KEYCLOAK_ADMIN
+      value: admin
+    - name: KEYCLOAK_ADMIN_PASSWORD
+      value: admin
+    - name: KC_PROXY
+      value: "edge"
+
+ollama:
+  ollama:
+    models:
+      pull:
+        - qwen2.5:0.5b
+  persistence:
+    enabled: true
+    size: 5Gi
+
+networkPolicy:
+  enabled: false   # kindnet does not enforce NetworkPolicies

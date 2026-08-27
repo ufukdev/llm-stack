@@ -54,6 +54,7 @@ jobs:
     strategy:
       matrix:
         scenario:
+          - default-values
           - kind-values
           - external-oidc-values
           - external-inference-values

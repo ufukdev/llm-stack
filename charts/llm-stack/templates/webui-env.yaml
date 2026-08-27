@@ -10,10 +10,10 @@ metadata:
     {{- include "llm-stack.labels" . | nindent 4 }}
 data:
   {{- if $oidcEnabled }}
-  ENABLE_OAUTH_SIGNUP: "true"
-  OAUTH_PROVIDER_NAME: {{ if .Values.oidc.external.enabled }}"SSO"{{ else }}"Keycloak"{{ end }}
+  # Only the URL goes here — other SSO env vars (ENABLE_OAUTH_SIGNUP, OAUTH_CLIENT_ID,
+  # OAUTH_PROVIDER_NAME) are set by the open-webui chart from its sso.* values
+  # and would be silently overridden if duplicated here.
   OPENID_PROVIDER_URL: {{ include "llm-stack.oidcIssuerUrl" . | quote }}
-  OAUTH_CLIENT_ID: {{ if .Values.oidc.external.enabled }}{{ .Values.oidc.external.clientId | quote }}{{ else }}"open-webui"{{ end }}
   {{- end }}
   {{- if .Values.qdrant.enabled }}
   VECTOR_DB: "qdrant"
