@@ -27,27 +27,38 @@ A self-hosted LLM stack as a single Helm umbrella chart. Designed for teams that
 - A default StorageClass (for persistent volumes)
 - Optional: an Ingress controller (nginx) and cert-manager for TLS
 
-## Quick start (kind)
+## Installation
+
+### From Helm repository (recommended)
+
+```bash
+helm repo add llm-stack https://ufukdev.github.io/llm-stack
+helm repo update
+
+helm install llm-stack llm-stack/llm-stack \
+  --namespace llm --create-namespace \
+  --set global.domain=example.com
+```
+
+> **Note:** GitHub Pages must be enabled on the `gh-pages` branch for
+> `helm repo add` to work. The release workflow publishes there automatically
+> on every merge to `main` that touches `charts/`.
+
+### From source (development)
 
 ```bash
 # Create a local cluster
 kind create cluster --name llm-stack
 
-# Add required chart repositories
-helm repo add open-webui   https://helm.openwebui.com/
-helm repo add codecentric  https://codecentric.github.io/helm-charts
-helm repo add qdrant       https://qdrant.github.io/qdrant-helm
-helm repo add ollama       https://otwld.github.io/ollama-helm/
-helm repo update
+helm dependency update charts/llm-stack
 
-# Install with the local CI values (no Ingress, no SSO, Keycloak disabled)
-helm install llm charts/llm-stack \
+helm install llm-stack charts/llm-stack \
   --kube-context kind-llm-stack \
-  -n llm --create-namespace \
+  --namespace llm --create-namespace \
   -f charts/llm-stack/ci/kind-values.yaml
 
 # Access Open WebUI
-kubectl -n llm port-forward svc/llm-open-webui 8080:80
+kubectl -n llm port-forward svc/llm-stack-open-webui 8080:80
 # Open http://localhost:8080
 ```
 

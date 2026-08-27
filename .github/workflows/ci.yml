@@ -94,9 +94,7 @@ jobs:
             --wait
 
       - name: Run helm tests
-        run: |
-          helm test llm --namespace llm --timeout 5m \
-            --filter name=llm-stack-test-webui-health
+        run: helm test llm --namespace llm --timeout 5m
 
   secret-stability:
     name: Secret stability
