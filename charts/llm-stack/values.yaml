@@ -106,7 +106,7 @@ keycloakx:
 # Sub-chart values under "litellm-helm:" (matches Chart.yaml name)
 # ---------------------------------------------------------------------------
 litellm:
-  enabled: false
+  enabled: true
 
 litellm-helm:
   # masterkeySecretName must match the release-specific fullname-secrets name.
@@ -139,7 +139,7 @@ oidc:
 # NetworkPolicy (requires a CNI that enforces policies, e.g. Calico)
 # ---------------------------------------------------------------------------
 networkPolicy:
-  enabled: false
+  enabled: true
   # Opt-in egress CIDR whitelist — only active when enabled=true.
   # Add specific IP ranges (e.g. an internal proxy or private registry) when
   # pods must reach known external endpoints over HTTPS.
