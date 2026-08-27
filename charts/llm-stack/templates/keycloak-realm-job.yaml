@@ -1,0 +1,95 @@
+{{- if and .Values.keycloak.enabled .Values.keycloak.realmImport.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-realm-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+data:
+  llm-stack-realm.json: |
+    {
+      "realm": "llm-stack",
+      "enabled": true,
+      "clients": [
+        {
+          "clientId": "open-webui",
+          "enabled": true,
+          "publicClient": false,
+          "secret": "$(env:OIDC_CLIENT_SECRET)",
+          "redirectUris": ["*"],
+          "webOrigins": ["*"],
+          "standardFlowEnabled": true
+        }
+      ],
+      "roles": {
+        "realm": [
+          { "name": "llm-user", "description": "Regular LLM user" },
+          { "name": "llm-admin", "description": "LLM administrator" }
+        ]
+      },
+      "groups": [
+        { "name": "llm-users" },
+        { "name": "llm-admins" }
+      ]
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-realm-import
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-keycloak
+          image: curlimages/curl:8.5.0
+          command:
+            - sh
+            - -c
+            - |
+              until curl -sf {{ include "llm-stack.keycloakInternalUrl" . }}/realms/master/.well-known/openid-configuration > /dev/null; do
+                echo "Waiting for Keycloak..."
+                sleep 5
+              done
+      containers:
+        - name: realm-import
+          image: quay.io/adorsys/keycloak-config-cli:latest-24.0.5
+          env:
+            - name: KEYCLOAK_URL
+              value: {{ include "llm-stack.keycloakInternalUrl" . | quote }}
+            - name: KEYCLOAK_USER
+              value: admin
+            - name: KEYCLOAK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "llm-stack.secretName" . }}
+                  key: keycloakAdminPassword
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "llm-stack.secretName" . }}
+                  key: oidcClientSecret
+            - name: IMPORT_FILES_LOCATIONS
+              value: /config/*.json
+          volumeMounts:
+            - name: realm-config
+              mountPath: /config
+      volumes:
+        - name: realm-config
+          configMap:
+            name: {{ include "llm-stack.fullname" . }}-realm-config
+{{- end }}

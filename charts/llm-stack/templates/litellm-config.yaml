@@ -1,0 +1,26 @@
+{{- if .Values.litellm.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-litellm-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    model_list:
+    {{- if eq .Values.inference.mode "local" }}
+      - model_name: qwen2.5-0.5b
+        litellm_params:
+          model: ollama/qwen2.5:0.5b
+          api_base: http://{{ .Release.Name }}-ollama.{{ .Release.Namespace }}.svc.cluster.local:11434
+    {{- else if eq .Values.inference.mode "external" }}
+      - model_name: external-model
+        litellm_params:
+          model: openai/gpt-4o
+          api_base: {{ .Values.inference.external.baseUrl | quote }}
+    {{- end }}
+
+    general_settings:
+      master_key: os.environ/LITELLM_MASTER_KEY
+{{- end }}

@@ -1,0 +1,21 @@
+LLM Stack {{ .Chart.Version }} deployed to namespace {{ .Release.Namespace }}.
+
+{{- if .Values.openWebui.enabled }}
+
+Open WebUI:
+  kubectl --context {{ .Release.Name }} -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-open-webui 8080:80
+  Then open http://localhost:8080
+{{- end }}
+
+{{- if .Values.keycloak.enabled }}
+
+Keycloak admin:
+  kubectl --context {{ .Release.Name }} -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-keycloakx-http 8180:80
+  Then open http://localhost:8180
+{{- end }}
+
+{{- if .Values.litellm.enabled }}
+
+LiteLLM gateway:
+  kubectl --context {{ .Release.Name }} -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-litellm 4000:4000
+{{- end }}

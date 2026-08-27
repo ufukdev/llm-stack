@@ -1,0 +1,123 @@
+# llm-stack umbrella chart values
+# Sub-chart values are nested under the chart's name as declared in Chart.yaml.
+# See charts/llm-stack/ci/kind-values.yaml for a minimal working example.
+
+global:
+  domain: ""          # e.g. example.com — used for Ingress host construction
+  storageClass: ""    # leave empty to use cluster default
+
+# ---------------------------------------------------------------------------
+# Inference mode: "local" (Ollama) or "external" (bring your own endpoint)
+# ---------------------------------------------------------------------------
+inference:
+  mode: local         # local | external
+  external:
+    baseUrl: ""       # required when mode=external
+    apiKey: ""        # optional
+
+# ---------------------------------------------------------------------------
+# Open WebUI — condition key: openWebui.enabled
+# Sub-chart values go under "open-webui:" (matches Chart.yaml name)
+# ---------------------------------------------------------------------------
+openWebui:
+  enabled: true
+  host: ""            # overrides global.domain-based host when set
+
+open-webui:
+  persistence:
+    enabled: true
+    size: 2Gi
+  ollama:
+    enabled: false    # managed separately by the ollama sub-chart
+  extraEnvFrom: []
+
+# ---------------------------------------------------------------------------
+# Ollama (local inference)
+# condition key: ollama.enabled — merged with sub-chart values
+# ---------------------------------------------------------------------------
+ollama:
+  enabled: true
+  ollama:
+    models:
+      pull:
+        - qwen2.5:0.5b
+  persistence:
+    enabled: true
+    size: 10Gi
+
+# ---------------------------------------------------------------------------
+# Qdrant (vector store)
+# condition key: qdrant.enabled — merged with sub-chart values
+# ---------------------------------------------------------------------------
+qdrant:
+  enabled: true
+  persistence:
+    size: 5Gi
+
+# ---------------------------------------------------------------------------
+# Keycloak
+# condition key: keycloak.enabled (our flag)
+# Sub-chart values under "keycloakx:" (matches Chart.yaml name)
+# ---------------------------------------------------------------------------
+keycloak:
+  enabled: true
+  realmImport:
+    enabled: true
+
+keycloakx:
+  # extraEnv is a string (multiline), not a list — matches keycloakx chart schema
+  extraEnv: ""
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start"
+    - "--import-realm"
+
+# ---------------------------------------------------------------------------
+# LiteLLM gateway
+# condition key: litellm.enabled (our flag)
+# Sub-chart values under "litellm-helm:" (matches Chart.yaml name)
+# ---------------------------------------------------------------------------
+litellm:
+  enabled: false
+
+litellm-helm:
+  masterkeySecretName: llm-stack-secrets
+  masterkeySecretKey: litellmMasterKey
+  db:
+    deployStandalone: true
+
+# ---------------------------------------------------------------------------
+# OIDC — populated by keycloak-realm-job when keycloak.enabled=true
+# Set oidc.external.enabled=true to skip Keycloak and use your own IdP
+# ---------------------------------------------------------------------------
+oidc:
+  external:
+    enabled: false
+    issuerUrl: ""
+    clientId: ""
+    clientSecret: ""
+
+# ---------------------------------------------------------------------------
+# NetworkPolicy (requires a CNI that enforces policies, e.g. Calico)
+# ---------------------------------------------------------------------------
+networkPolicy:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Ingress
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: ""
+  tls:
+    secretName: ""    # leave empty to use cert-manager annotation
+    issuer: ""        # cert-manager ClusterIssuer name
+
+# ---------------------------------------------------------------------------
+# Shared secrets — generated on first install, stable across upgrades
+# Set non-empty values here for GitOps / external secret managers
+# ---------------------------------------------------------------------------
+secrets:
+  litellmMasterKey: ""
+  oidcClientSecret: ""
+  keycloakAdminPassword: ""

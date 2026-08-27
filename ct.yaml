@@ -1,0 +1,10 @@
+remote: origin
+target-branch: main
+chart-dirs:
+  - charts
+chart-repos:
+  - codecentric=https://codecentric.github.io/helm-charts
+  - open-webui=https://helm.openwebui.com/
+  - qdrant=https://qdrant.github.io/qdrant-helm
+  - ollama=https://otwld.github.io/ollama-helm/
+helm-extra-args: "--timeout 15m"

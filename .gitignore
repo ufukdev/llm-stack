@@ -1,0 +1,19 @@
+# Helm
+charts/llm-stack/charts/
+charts/llm-stack/Chart.lock
+*.tgz
+
+# Secrets / local overrides
+secrets.yaml
+*-secret.yaml
+*.local.yaml
+
+# Editor
+.DS_Store
+*.swp
+*.bak
+.idea/
+.vscode/
+
+# Test artifacts
+/tmp/

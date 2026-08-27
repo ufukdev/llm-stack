@@ -1,0 +1,43 @@
+# Minimal values for kind/CI testing
+# Uses small model, no Ingress, no TLS, no NetworkPolicy
+
+global:
+  domain: "local.test"
+
+inference:
+  mode: local
+
+openWebui:
+  enabled: true
+
+open-webui:
+  persistence:
+    enabled: true
+    size: 1Gi
+
+ollama:
+  enabled: true
+  ollama:
+    models:
+      pull:
+        - qwen2.5:0.5b
+  persistence:
+    enabled: true
+    size: 5Gi
+
+qdrant:
+  enabled: true
+  persistence:
+    size: 1Gi
+
+keycloak:
+  enabled: false
+
+litellm:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+ingress:
+  enabled: false

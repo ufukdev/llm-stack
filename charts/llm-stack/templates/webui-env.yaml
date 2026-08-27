@@ -1,0 +1,32 @@
+{{- if .Values.openWebui.enabled }}
+{{- $oidcEnabled := or .Values.keycloak.enabled .Values.oidc.external.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "llm-stack.fullname" . }}-webui-env
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "llm-stack.labels" . | nindent 4 }}
+data:
+  {{- if $oidcEnabled }}
+  ENABLE_OAUTH_SIGNUP: "true"
+  OAUTH_PROVIDER_NAME: "Keycloak"
+  OPENID_PROVIDER_URL: {{ include "llm-stack.oidcIssuerUrl" . | quote }}
+  {{- if .Values.oidc.external.enabled }}
+  OAUTH_CLIENT_ID: {{ .Values.oidc.external.clientId | quote }}
+  {{- else }}
+  OAUTH_CLIENT_ID: "open-webui"
+  {{- end }}
+  {{- end }}
+  {{- if and .Values.litellm.enabled }}
+  OPENAI_API_BASE_URL: {{ printf "http://%s-litellm.%s.svc.cluster.local:4000/v1" .Release.Name .Release.Namespace | quote }}
+  {{- else if eq .Values.inference.mode "external" }}
+  OPENAI_API_BASE_URL: {{ .Values.inference.external.baseUrl | quote }}
+  {{- else }}
+  OLLAMA_BASE_URL: {{ printf "http://%s-ollama.%s.svc.cluster.local:11434" .Release.Name .Release.Namespace | quote }}
+  {{- end }}
+  VECTOR_DB: "qdrant"
+  {{- if .Values.qdrant.enabled }}
+  QDRANT_URL: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace | quote }}
+  {{- end }}
+{{- end }}

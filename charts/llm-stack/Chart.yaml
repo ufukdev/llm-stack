@@ -1,0 +1,38 @@
+apiVersion: v2
+name: llm-stack
+description: |
+  Self-hosted LLM stack with SSO, RAG and observability.
+  Designed for teams that cannot send data outside and must
+  integrate with their existing identity provider.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/ufukdev/llm-stack
+maintainers:
+  - name: ufukdev
+
+dependencies:
+  - name: open-webui
+    version: "16.1.0"
+    repository: https://helm.openwebui.com/
+    condition: openWebui.enabled
+
+  - name: keycloakx
+    version: "7.3.0"
+    repository: https://codecentric.github.io/helm-charts
+    condition: keycloak.enabled
+
+  - name: qdrant
+    version: "1.19.0"
+    repository: https://qdrant.github.io/qdrant-helm
+    condition: qdrant.enabled
+
+  - name: ollama
+    version: "1.78.0"
+    repository: https://otwld.github.io/ollama-helm/
+    condition: ollama.enabled
+
+  - name: litellm-helm
+    version: "1.98.0"
+    repository: "oci://ghcr.io/berriai"
+    condition: litellm.enabled
