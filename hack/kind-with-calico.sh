@@ -22,23 +22,19 @@ echo "Installing Calico ${CALICO_VERSION}..."
 kubectl --context "kind-${CLUSTER_NAME}" apply \
   -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml"
 
-echo "Waiting for Calico pods to be ready (up to 3 min)..."
-# kubectl wait fails immediately with "no matching resources found" if the
-# pods haven't been created yet. Poll until at least one pod exists first.
-for i in $(seq 1 30); do
-  COUNT=$(kubectl --context "kind-${CLUSTER_NAME}" \
-    -n kube-system get pod \
-    --selector k8s-app=calico-node \
-    --no-headers 2>/dev/null | wc -l)
-  [ "${COUNT}" -gt 0 ] && break
-  echo "  waiting for calico-node pods to appear... (${i}/30)"
-  sleep 3
+echo "Waiting for Calico DaemonSet to be created (up to 5 min)..."
+# kubectl rollout status fails if the resource doesn't exist yet.
+# Poll until the DaemonSet appears before handing off to rollout status.
+for i in $(seq 1 60); do
+  kubectl --context "kind-${CLUSTER_NAME}" \
+    -n kube-system get ds calico-node >/dev/null 2>&1 && break
+  echo "  waiting for calico-node DaemonSet... (${i}/60)"
+  sleep 5
 done
+
+echo "Waiting for Calico DaemonSet rollout (up to 5 min)..."
 kubectl --context "kind-${CLUSTER_NAME}" \
-  -n kube-system wait \
-  --for=condition=Ready pod \
-  --selector k8s-app=calico-node \
-  --timeout=180s
+  -n kube-system rollout status ds/calico-node --timeout=300s
 
 echo "Waiting for control-plane node to be Ready..."
 kubectl --context "kind-${CLUSTER_NAME}" wait \
