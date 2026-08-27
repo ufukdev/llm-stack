@@ -77,6 +77,7 @@ keycloak:
   enabled: true
   realmImport:
     enabled: true
+    sslRequired: "none"    # no TLS in kind; production default is "external"
   adminPassword: "admin"   # matches KEYCLOAK_ADMIN_PASSWORD below
 
 # keycloakx sub-chart overrides for kind (no TLS, no strict hostname)

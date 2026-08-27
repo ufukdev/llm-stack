@@ -19,15 +19,15 @@ data:
       "displayName": "LLM Stack",
       "registrationAllowed": false,
       "loginWithEmailAllowed": true,
-      "sslRequired": "none",
+      "sslRequired": {{ .Values.keycloak.realmImport.sslRequired | default "external" | quote }},
       "clients": [
         {
           "clientId": "open-webui",
           "enabled": true,
           "publicClient": false,
           "secret": "$(env:OIDC_CLIENT_SECRET)",
-          "redirectUris": ["*"],
-          "webOrigins": ["*"],
+          "redirectUris": [{{ printf "https://chat.%s/oauth/oidc/callback" .Values.global.domain | quote }}],
+          "webOrigins": [{{ printf "https://chat.%s" .Values.global.domain | quote }}],
           "standardFlowEnabled": true,
           "protocol": "openid-connect"
         }

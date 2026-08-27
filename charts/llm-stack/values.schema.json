@@ -93,6 +93,11 @@
             "enabled": {
               "type": "boolean",
               "description": "Run the realm-import Job on first install"
+            },
+            "sslRequired": {
+              "type": "string",
+              "enum": ["external", "all", "none"],
+              "description": "Keycloak realm sslRequired setting. Use 'external' in production, 'none' only in CI/dev environments without TLS"
             }
           }
         },

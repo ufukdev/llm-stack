@@ -88,6 +88,7 @@ keycloak:
   enabled: true
   realmImport:
     enabled: true
+    sslRequired: "external"  # "external" (prod) | "none" (CI/dev, no TLS)
   adminUser: admin
   adminPassword: ""    # leave empty to use generated secret (keycloakAdminPassword)
 
