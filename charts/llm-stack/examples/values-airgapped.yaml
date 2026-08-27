@@ -110,6 +110,14 @@ qdrant:
     size: 20Gi
 
 # ---------------------------------------------------------------------------
+# Shared utility images (curl used by tests and realm-import job)
+# ---------------------------------------------------------------------------
+images:
+  curl:
+    repository: registry.internal/curlimages/curl
+    tag: "8.8.0"
+
+# ---------------------------------------------------------------------------
 # Keycloak — internal registry image
 # ---------------------------------------------------------------------------
 keycloak:
@@ -145,8 +153,9 @@ ingress:
   enabled: true
   className: nginx
   tls:
-    issuer: ""           # use internal CA — configure cert-manager with your CA secret
-    secretName: "llm-tls-secret"
+    issuer: ""                          # use internal CA — configure cert-manager with your CA secret
+    webuiSecretName: "llm-webui-tls"    # TLS secret for chat.<domain>
+    keycloakSecretName: "llm-kc-tls"   # TLS secret for auth.<domain>
 
 networkPolicy:
   enabled: true         # strongly recommended in air-gapped environments

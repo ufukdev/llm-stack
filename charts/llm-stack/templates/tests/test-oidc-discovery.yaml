@@ -15,7 +15,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: oidc-check
-      image: {{ .Values.keycloak.realmImport.images.curl.repository }}:{{ .Values.keycloak.realmImport.images.curl.tag }}
+      image: {{ .Values.images.curl.repository }}:{{ .Values.images.curl.tag }}
       command:
         - sh
         - -c

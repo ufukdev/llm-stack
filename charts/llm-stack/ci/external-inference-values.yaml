@@ -34,7 +34,7 @@ open-webui:
     - name: VECTOR_DB
       value: "qdrant"
     - name: QDRANT_URI
-      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
+      value: "http://llm-stack-qdrant.llm.svc.cluster.local:6333"
   openaiBaseApiUrl: "https://api.example.com/v1"
   openaiApiKey: "sk-placeholder"
 

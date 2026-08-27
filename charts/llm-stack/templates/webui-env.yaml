@@ -17,7 +17,7 @@ data:
   {{- end }}
   {{- if .Values.qdrant.enabled }}
   VECTOR_DB: "qdrant"
-  QDRANT_URI: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace | quote }}
+  QDRANT_URI: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" (include "llm-stack.fullname" .) .Release.Namespace | quote }}
   {{- end }}
 {{- end }}
 {{- end }}

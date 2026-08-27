@@ -41,17 +41,17 @@ keycloak:
 oidc:
   external:
     enabled: true
-    # Full issuer URL of your IdP realm/tenant
+    # Full issuer URL of your IdP realm/tenant.
+    # The chart sets OPENID_PROVIDER_URL for Open WebUI automatically from this value.
     issuerUrl: "https://sso.example.com/auth/realms/my-company"
-    # Client ID registered in your IdP
-    clientId: "open-webui"
-    # Client secret — set via --set or external secret; do not commit
+    # Client secret — set via --set or external secret; do not commit.
+    # Required when oidc.external.enabled=true.
     clientSecret: ""
 
 # ---------------------------------------------------------------------------
 # Open WebUI SSO wiring
-# The chart sets OPENID_PROVIDER_URL automatically from oidc.external.issuerUrl.
-# Configure the chart-native SSO block for the client credential reference.
+# Set the client ID here — oidc.external.clientId does not exist.
+# The chart wires OPENID_PROVIDER_URL automatically from oidc.external.issuerUrl.
 # ---------------------------------------------------------------------------
 open-webui:
   sso:
@@ -60,11 +60,13 @@ open-webui:
     mergeAccountsByEmail: false
     oidc:
       enabled: true
+      # Client ID registered in your IdP — set this to match your IdP registration.
       clientId: "open-webui"
-      # If you store clientSecret in a K8s secret instead of passing --set:
-      #   clientExistingSecret: "my-oidc-secret"
-      #   clientExistingSecretKey: "clientSecret"
-      clientSecret: ""       # set via --set oidc.external.clientSecret
+      # The client secret is read from the chart-managed Secret (populated from
+      # oidc.external.clientSecret above). Override with clientExistingSecret if
+      # you manage the secret externally.
+      clientExistingSecret: "llm-stack-secrets"
+      clientExistingSecretKey: "oidcClientSecret"
       providerUrl: "https://sso.example.com/auth/realms/my-company"
       providerName: "My Company SSO"
       scopes: "openid email profile"
@@ -94,7 +96,7 @@ ingress:
   enabled: true
   className: nginx
   tls:
-    issuer: letsencrypt-prod # cert-manager ClusterIssuer name
+    issuer: letsencrypt-prod # cert-manager ClusterIssuer name (auto-provisions both certs)
 
 networkPolicy:
   enabled: false             # set to true if your CNI supports it (Calico, Cilium)

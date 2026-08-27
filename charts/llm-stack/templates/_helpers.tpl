@@ -54,7 +54,7 @@ The keycloakx chart produces a service named <release>-keycloakx-http.
 Verified against keycloakx chart templates in T2.
 */}}
 {{- define "llm-stack.keycloakInternalUrl" -}}
-{{- printf "http://%s-keycloakx-http.%s.svc.cluster.local:80" .Release.Name .Release.Namespace }}
+{{- printf "http://%s-keycloakx-http.%s.svc.cluster.local:80" (include "llm-stack.fullname" .) .Release.Namespace }}
 {{- end }}
 
 {{/*

@@ -13,24 +13,33 @@ spec:
   restartPolicy: Never
   containers:
     - name: health-check
-      image: curlimages/curl:8.8.0
+      image: {{ .Values.images.curl.repository }}:{{ .Values.images.curl.tag }}
       command:
         - sh
         - -c
         - |
           set -e
+          BASE="http://{{ include "llm-stack.fullname" . }}-open-webui.{{ .Release.Namespace }}.svc.cluster.local"
           echo "Waiting for Open WebUI to be ready..."
           for i in $(seq 1 30); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
-              http://{{ .Release.Name }}-open-webui.{{ .Release.Namespace }}.svc.cluster.local/health \
-              2>/dev/null || echo "000")
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "$BASE/health" 2>/dev/null || echo "000")
             if [ "$STATUS" = "200" ]; then
               echo "Open WebUI healthy (HTTP 200)"
-              exit 0
+              break
             fi
             echo "Attempt $i/30 — status: $STATUS, retrying in 5s..."
             sleep 5
           done
-          echo "Open WebUI did not become healthy in time"
+          if [ "$STATUS" != "200" ]; then
+            echo "Open WebUI did not become healthy in time"
+            exit 1
+          fi
+          echo "Checking /api/models for at least one model..."
+          MODELS=$(curl -sf "$BASE/api/models" 2>/dev/null || true)
+          if echo "$MODELS" | grep -q '"id"'; then
+            echo "Open WebUI /api/models OK — at least one model present"
+            exit 0
+          fi
+          echo "FAIL: Open WebUI /api/models returned no models: $MODELS"
           exit 1
 {{- end }}

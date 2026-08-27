@@ -2,7 +2,7 @@
 {{- $fullname := include "llm-stack.fullname" . }}
 {{- $domain := .Values.global.domain }}
 {{- $tls := .Values.ingress.tls }}
-{{- $hasTls := or $tls.secretName $tls.issuer }}
+{{- $hasTls := or $tls.webuiSecretName $tls.keycloakSecretName $tls.issuer }}
 ---
 # Open WebUI Ingress
 apiVersion: networking.k8s.io/v1
@@ -12,7 +12,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "llm-stack.labels" . | nindent 4 }}
-  {{- if and $tls.issuer (not $tls.secretName) }}
+  {{- if and $tls.issuer (not $tls.webuiSecretName) }}
   annotations:
     cert-manager.io/cluster-issuer: {{ $tls.issuer | quote }}
   {{- end }}
@@ -20,12 +20,12 @@ spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className | quote }}
   {{- end }}
-  {{- if $hasTls }}
+  {{- if or $tls.webuiSecretName $tls.issuer }}
   tls:
     - hosts:
         - {{ .Values.openWebui.host | default (printf "chat.%s" $domain) | quote }}
-      {{- if $tls.secretName }}
-      secretName: {{ $tls.secretName | quote }}
+      {{- if $tls.webuiSecretName }}
+      secretName: {{ $tls.webuiSecretName | quote }}
       {{- else }}
       secretName: {{ printf "%s-webui-tls" $fullname | quote }}
       {{- end }}
@@ -51,7 +51,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "llm-stack.labels" . | nindent 4 }}
-  {{- if and $tls.issuer (not $tls.secretName) }}
+  {{- if and $tls.issuer (not $tls.keycloakSecretName) }}
   annotations:
     cert-manager.io/cluster-issuer: {{ $tls.issuer | quote }}
   {{- end }}
@@ -59,12 +59,12 @@ spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className | quote }}
   {{- end }}
-  {{- if $hasTls }}
+  {{- if or $tls.keycloakSecretName $tls.issuer }}
   tls:
     - hosts:
         - {{ printf "auth.%s" $domain | quote }}
-      {{- if $tls.secretName }}
-      secretName: {{ $tls.secretName | quote }}
+      {{- if $tls.keycloakSecretName }}
+      secretName: {{ $tls.keycloakSecretName | quote }}
       {{- else }}
       secretName: {{ printf "%s-keycloak-tls" $fullname | quote }}
       {{- end }}

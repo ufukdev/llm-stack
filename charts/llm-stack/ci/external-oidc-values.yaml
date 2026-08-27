@@ -17,7 +17,7 @@ open-webui:
   ollama:
     enabled: false
   ollamaUrls:
-    - http://llm-ollama.llm.svc.cluster.local:11434
+    - http://llm-stack-ollama.llm.svc.cluster.local:11434
   pipelines:
     enabled: false
   extraEnvVars:
@@ -38,7 +38,7 @@ open-webui:
     - name: VECTOR_DB
       value: "qdrant"
     - name: QDRANT_URI
-      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
+      value: "http://llm-stack-qdrant.llm.svc.cluster.local:6333"
 
 ollama:
   enabled: true
@@ -66,7 +66,6 @@ oidc:
   external:
     enabled: true
     issuerUrl: "https://sso.example.com/realms/my-realm"
-    clientId: "open-webui"
     clientSecret: "external-secret-placeholder"
 
 litellm:

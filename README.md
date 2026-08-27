@@ -52,14 +52,13 @@ kind create cluster --name llm-stack
 
 helm dependency update charts/llm-stack
 
-# Release name "llm" matches the service URLs hardcoded in kind-values.yaml
-helm install llm charts/llm-stack \
+helm install llm-stack charts/llm-stack \
   --kube-context kind-llm-stack \
   --namespace llm --create-namespace \
   -f charts/llm-stack/ci/kind-values.yaml
 
 # Access Open WebUI
-kubectl -n llm port-forward svc/llm-open-webui 8080:80
+kubectl -n llm port-forward svc/llm-stack-open-webui 8080:80
 # Open http://localhost:8080
 ```
 

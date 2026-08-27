@@ -29,7 +29,7 @@ data:
       - model_name: {{ . | replace ":" "-" }}
         litellm_params:
           model: "ollama/{{ . }}"
-          api_base: "http://{{ $.Release.Name }}-ollama.{{ $.Release.Namespace }}.svc.cluster.local:11434"
+          api_base: "http://{{ include "llm-stack.fullname" $ }}-ollama.{{ $.Release.Namespace }}.svc.cluster.local:11434"
     {{- end }}
     {{- else }}
       [] # no models configured — add ollama.ollama.models.pull entries

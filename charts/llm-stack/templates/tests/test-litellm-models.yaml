@@ -13,7 +13,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: litellm-check
-      image: {{ .Values.keycloak.realmImport.images.curl.repository }}:{{ .Values.keycloak.realmImport.images.curl.tag }}
+      image: {{ .Values.images.curl.repository }}:{{ .Values.images.curl.tag }}
       env:
         - name: LITELLM_KEY
           valueFrom:
@@ -25,19 +25,22 @@ spec:
         - -c
         - |
           set -e
-          GATEWAY="http://{{ .Release.Name }}-litellm.{{ .Release.Namespace }}.svc.cluster.local:4000"
+          GATEWAY="http://{{ include "llm-stack.fullname" . }}-litellm.{{ .Release.Namespace }}.svc.cluster.local:4000"
           echo "Checking LiteLLM gateway at: $GATEWAY"
           for i in $(seq 1 20); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            BODY=$(curl -sf \
               -H "Authorization: Bearer $LITELLM_KEY" \
-              "$GATEWAY/models" 2>/dev/null || echo "000")
-            if [ "$STATUS" = "200" ]; then
-              echo "LiteLLM /models OK (HTTP 200)"
+              "$GATEWAY/v1/models" 2>/dev/null || true)
+            if echo "$BODY" | grep -q '"id"'; then
+              echo "LiteLLM /v1/models OK — at least one model present"
               exit 0
             fi
-            echo "Attempt $i/20 — status: $STATUS, retrying in 5s..."
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $LITELLM_KEY" \
+              "$GATEWAY/v1/models" 2>/dev/null || echo "000")
+            echo "Attempt $i/20 — status: $STATUS, no models yet, retrying in 5s..."
             sleep 5
           done
-          echo "LiteLLM gateway did not respond in time"
+          echo "LiteLLM gateway returned no models in time"
           exit 1
 {{- end }}

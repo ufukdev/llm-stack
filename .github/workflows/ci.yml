@@ -177,6 +177,53 @@ jobs:
           fi
           echo "Secret stable across 2 upgrades: $H"
 
+  networkpolicy:
+    name: NetworkPolicy enforcement
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: "v3.17.0"
+
+      - name: Create Calico cluster
+        run: bash hack/kind-with-calico.sh
+
+      - name: Add chart repos and dependencies
+        run: |
+          helm repo add codecentric https://codecentric.github.io/helm-charts
+          helm repo add open-webui   https://helm.openwebui.com/
+          helm repo add qdrant       https://qdrant.github.io/qdrant-helm
+          helm repo add ollama       https://otwld.github.io/ollama-helm/
+          helm repo update
+          helm dependency update charts/llm-stack
+
+      - name: Install with policies enabled
+        run: |
+          helm install llm-stack charts/llm-stack \
+            --kube-context kind-netpol \
+            --namespace llm --create-namespace \
+            -f charts/llm-stack/ci/default-values.yaml \
+            --set networkPolicy.enabled=true \
+            --timeout 15m --wait
+
+      - name: Egress must be blocked
+        run: |
+          if kubectl --context kind-netpol -n llm run egress-test \
+               --rm -i --restart=Never --image=curlimages/curl:8.8.0 \
+               -- curl -m 5 -sf https://example.com >/dev/null 2>&1; then
+            echo "FAIL: external egress succeeded, isolation is not enforced"
+            exit 1
+          fi
+          echo "OK: external egress blocked"
+
+      - name: Application must still work
+        run: helm test llm-stack --kube-context kind-netpol --namespace llm --timeout 5m
+
   schema-validate:
     name: Schema validation
     runs-on: ubuntu-latest

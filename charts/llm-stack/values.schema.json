@@ -4,6 +4,21 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Shared utility images — override for air-gapped deployments",
+      "properties": {
+        "curl": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" }
+          }
+        }
+      }
+    },
     "global": {
       "type": "object",
       "additionalProperties": true,
@@ -108,14 +123,6 @@
               "additionalProperties": false,
               "description": "Image overrides for air-gapped deployments",
               "properties": {
-                "curl": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "repository": { "type": "string" },
-                    "tag": { "type": "string" }
-                  }
-                },
                 "configCli": {
                   "type": "object",
                   "additionalProperties": false,
@@ -165,13 +172,9 @@
               "type": "string",
               "description": "OIDC issuer URL (e.g. https://sso.example.com/auth/realms/my-realm)"
             },
-            "clientId": {
-              "type": "string",
-              "description": "OIDC client ID registered with the external provider"
-            },
             "clientSecret": {
               "type": "string",
-              "description": "OIDC client secret; prefer --set or an external secret manager"
+              "description": "OIDC client secret; required when oidc.external.enabled=true. Set via --set, never commit."
             }
           }
         }
@@ -208,9 +211,13 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "secretName": {
+            "webuiSecretName": {
               "type": "string",
-              "description": "TLS secret name; leave empty to use cert-manager annotation"
+              "description": "TLS secret for chat.<domain>; leave empty to use cert-manager annotation"
+            },
+            "keycloakSecretName": {
+              "type": "string",
+              "description": "TLS secret for auth.<domain>; leave empty to use cert-manager annotation"
             },
             "issuer": {
               "type": "string",

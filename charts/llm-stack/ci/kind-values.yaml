@@ -14,49 +14,6 @@ open-webui:
   persistence:
     enabled: true
     size: 1Gi
-  ollama:
-    enabled: false
-  ollamaUrls:
-    - http://llm-ollama.llm.svc.cluster.local:11434
-  pipelines:
-    enabled: false
-  extraEnvVars:
-    - name: ENABLE_OLLAMA_API
-      value: "true"
-    - name: ENABLE_COMMUNITY_SHARING
-      value: "false"
-    - name: SCARF_NO_ANALYTICS
-      value: "true"
-    - name: ANONYMIZED_TELEMETRY
-      value: "false"
-    - name: HF_HUB_OFFLINE
-      value: "1"
-    - name: RAG_EMBEDDING_ENGINE
-      value: "ollama"
-    - name: RAG_EMBEDDING_MODEL
-      value: "nomic-embed-text"
-    - name: VECTOR_DB
-      value: "qdrant"
-    - name: QDRANT_URI
-      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
-  # LiteLLM gateway as OpenAI-compatible backend
-  # CI release = "llm", so service is llm-litellm.llm.svc.cluster.local
-  openaiBaseApiUrl: "http://llm-litellm.llm.svc.cluster.local:4000/v1"
-  openaiApiKeyExistingSecret: "llm-stack-secrets"
-  openaiApiKeyExistingSecretKey: "litellmMasterKey"
-  # SSO: point to internal Keycloak (browser redirect only works with Ingress in prod)
-  sso:
-    enabled: true
-    enableSignup: true
-    oidc:
-      enabled: true
-      clientId: "open-webui"
-      # Reference the chart-generated secret (CI release name is "llm" → "llm-stack-secrets")
-      clientExistingSecret: "llm-stack-secrets"
-      clientExistingSecretKey: "oidcClientSecret"
-      providerUrl: "http://llm-keycloakx-http.llm.svc.cluster.local:80/auth/realms/llm-stack"
-      providerName: "Keycloak"
-      scopes: "openid email profile"
 
 ollama:
   enabled: true

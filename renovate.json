@@ -26,7 +26,7 @@
   ],
   "packageRules": [
     {
-      "matchManagers": ["helm-values", "regex"],
+      "matchManagers": ["helm-values", "custom.regex"],
       "matchPackageNames": ["open-webui", "keycloakx", "qdrant", "ollama", "litellm-helm"],
       "groupName": "helm subchart dependencies",
       "automerge": false

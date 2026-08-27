@@ -9,6 +9,14 @@
 # Override only if you deploy multiple instances in the same namespace.
 fullnameOverride: "llm-stack"
 
+# ---------------------------------------------------------------------------
+# Shared utility images — override for air-gapped deployments
+# ---------------------------------------------------------------------------
+images:
+  curl:
+    repository: curlimages/curl
+    tag: "8.8.0"
+
 global:
   domain: "" # e.g. example.com — used for Ingress host construction
   storageClass: "" # leave empty to use cluster default
@@ -32,20 +40,23 @@ openWebui:
   host: "" # overrides global.domain-based host when set
 
 open-webui:
+  fullnameOverride: llm-stack-open-webui
   persistence:
     enabled: true
     size: 2Gi
   ollama:
     enabled: false # managed separately by the ollama sub-chart
-  # ollamaUrls is the correct way to point Open WebUI at an external Ollama
-  # (verified against open-webui chart v16.1.0)
   ollamaUrls: []
   pipelines:
     enabled: false
+  # Route all model traffic through LiteLLM (OpenAI-compatible gateway).
+  # The URL uses tpl so .Release.Namespace expands correctly at install time.
+  enableOpenaiApi: true
+  openaiBaseApiUrl: "http://llm-stack-litellm.{{ .Release.Namespace }}.svc.cluster.local:4000/v1"
+  openaiApiKeyExistingSecret: "llm-stack-secrets"
+  openaiApiKeyExistingSecretKey: "litellmMasterKey"
   # Dynamic env vars (OIDC URLs, Qdrant URI) come from our ConfigMap.
   # optional=true so the envFrom is a no-op when keycloak.enabled=false.
-  # secretRef exposes all shared secrets as env vars; the OIDC client secret
-  # is wired separately via sso.oidc.clientExistingSecret below.
   extraEnvFrom:
     - configMapRef:
         name: llm-stack-webui-env
@@ -69,7 +80,7 @@ open-webui:
       scopes: "openid email profile"
   extraEnvVars:
     - name: ENABLE_OLLAMA_API
-      value: "true"
+      value: "false"
     # Privacy: disable all external call-home behaviour by default.
     # These are the correct knobs as of Open WebUI v0.11.x.
     # Without these, Open WebUI contacts HuggingFace on startup (embedding
@@ -95,6 +106,7 @@ open-webui:
 # ---------------------------------------------------------------------------
 ollama:
   enabled: true
+  fullnameOverride: llm-stack-ollama
   ollama:
     models:
       pull:
@@ -109,6 +121,7 @@ ollama:
 # ---------------------------------------------------------------------------
 qdrant:
   enabled: true
+  fullnameOverride: llm-stack-qdrant
   persistence:
     size: 5Gi
 
@@ -123,9 +136,6 @@ keycloak:
     enabled: true
     sslRequired: "external" # "external" (prod) | "none" (CI/dev, no TLS)
     images:
-      curl:
-        repository: curlimages/curl
-        tag: "8.8.0"
       configCli:
         repository: quay.io/adorsys/keycloak-config-cli
         # Match keycloakx appVersion major: keycloakx 7.3.0 = Keycloak 26.7.2
@@ -134,6 +144,7 @@ keycloak:
   adminPassword: "" # leave empty to use generated secret (keycloakAdminPassword)
 
 keycloakx:
+  fullnameOverride: llm-stack-keycloakx
   # extraEnv is a string (multiline), not a list — matches keycloakx chart schema
   extraEnv: ""
   command:
@@ -150,6 +161,7 @@ litellm:
   enabled: true
 
 litellm-helm:
+  fullnameOverride: llm-stack-litellm
   # Secret name matches llm-stack.secretName, stable via fullnameOverride above.
   masterkeySecretName: llm-stack-secrets
   masterkeySecretKey: litellmMasterKey
@@ -170,7 +182,6 @@ oidc:
   external:
     enabled: false
     issuerUrl: ""
-    clientId: ""
     clientSecret: ""
 
 # ---------------------------------------------------------------------------
@@ -191,7 +202,8 @@ ingress:
   enabled: false
   className: ""
   tls:
-    secretName: "" # leave empty to use cert-manager annotation
+    webuiSecretName: ""    # TLS secret for chat.<domain>; leave empty for cert-manager
+    keycloakSecretName: "" # TLS secret for auth.<domain>; leave empty for cert-manager
     issuer: "" # cert-manager ClusterIssuer name
 
 # ---------------------------------------------------------------------------

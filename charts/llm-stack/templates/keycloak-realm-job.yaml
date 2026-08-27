@@ -65,7 +65,7 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: wait-for-keycloak
-          image: {{ .Values.keycloak.realmImport.images.curl.repository }}:{{ .Values.keycloak.realmImport.images.curl.tag }}
+          image: {{ .Values.images.curl.repository }}:{{ .Values.images.curl.tag }}
           command:
             - sh
             - -c
