@@ -90,10 +90,20 @@ litellm:
   enabled: false
 
 litellm-helm:
+  # masterkeySecretName must match the release-specific fullname-secrets name.
+  # Default assumes `helm install llm-stack charts/llm-stack` (release = chart name).
+  # Override in your values if using a different release name.
   masterkeySecretName: llm-stack-secrets
   masterkeySecretKey: litellmMasterKey
   db:
     deployStandalone: true
+  proxy_config:
+    # Populated per environment — see ci/kind-values.yaml for a local example.
+    # For local inference, set api_base to the Ollama service URL.
+    # For external inference, set api_base to your endpoint.
+    model_list: []
+    general_settings:
+      master_key: os.environ/PROXY_MASTER_KEY
 
 # ---------------------------------------------------------------------------
 # OIDC — populated by keycloak-realm-job when keycloak.enabled=true

@@ -1,0 +1,100 @@
+# Example: external identity provider (no Keycloak)
+#
+# Use this when your organisation already runs an OIDC-compatible IdP
+# (Okta, Azure AD, Authentik, another Keycloak instance, …) and you
+# want Open WebUI to trust it directly instead of deploying Keycloak.
+#
+# Prerequisites
+# -------------
+# 1. Create an OIDC client in your IdP:
+#      - Redirect URI: https://chat.<domain>/oauth/oidc/callback
+#      - Grant type: Authorization Code
+#      - Copy the client ID and secret.
+#
+# 2. Note your IdP's issuer URL. For Keycloak it looks like:
+#      https://sso.example.com/auth/realms/<realm-name>
+#    For Okta: https://<org>.okta.com/oauth2/default
+#    For Azure AD: https://login.microsoftonline.com/<tenant>/v2.0
+#
+# 3. Set the values below, then install or upgrade:
+#      helm upgrade --install llm-stack charts/llm-stack \
+#        -f examples/values-external-idp.yaml \
+#        --set oidc.external.clientSecret=<your-secret>
+#
+# Security note: never commit clientSecret to version control.
+# Use --set, a sealed secret, or an external secret manager instead.
+
+global:
+  domain: "example.com"   # your domain; Ingress hosts become chat.example.com
+
+# ---------------------------------------------------------------------------
+# Disable Keycloak — your IdP handles authentication
+# ---------------------------------------------------------------------------
+keycloak:
+  enabled: false
+  realmImport:
+    enabled: false
+
+# ---------------------------------------------------------------------------
+# External OIDC configuration
+# ---------------------------------------------------------------------------
+oidc:
+  external:
+    enabled: true
+    # Full issuer URL of your IdP realm/tenant
+    issuerUrl: "https://sso.example.com/auth/realms/my-company"
+    # Client ID registered in your IdP
+    clientId: "open-webui"
+    # Client secret — set via --set or external secret; do not commit
+    clientSecret: ""
+
+# ---------------------------------------------------------------------------
+# Open WebUI SSO wiring
+# The chart sets OPENID_PROVIDER_URL automatically from oidc.external.issuerUrl.
+# Configure the chart-native SSO block for the client credential reference.
+# ---------------------------------------------------------------------------
+open-webui:
+  sso:
+    enabled: true
+    enableSignup: true       # allow users to self-register on first OAuth login
+    mergeAccountsByEmail: false
+    oidc:
+      enabled: true
+      clientId: "open-webui"
+      # If you store clientSecret in a K8s secret instead of passing --set:
+      #   clientExistingSecret: "my-oidc-secret"
+      #   clientExistingSecretKey: "clientSecret"
+      clientSecret: ""       # set via --set oidc.external.clientSecret
+      providerUrl: "https://sso.example.com/auth/realms/my-company"
+      providerName: "My Company SSO"
+      scopes: "openid email profile"
+
+# ---------------------------------------------------------------------------
+# Rest of the stack — adjust to your environment
+# ---------------------------------------------------------------------------
+inference:
+  mode: local   # or "external" if you bring your own model endpoint
+
+ollama:
+  enabled: true
+  ollama:
+    models:
+      pull:
+        - llama3.2:3b        # replace with your preferred model
+
+qdrant:
+  enabled: true
+  persistence:
+    size: 20Gi
+
+litellm:
+  enabled: false             # enable if you want an OpenAI-compatible gateway layer
+
+ingress:
+  enabled: true
+  className: nginx
+  tls:
+    issuer: letsencrypt-prod # cert-manager ClusterIssuer name
+
+networkPolicy:
+  enabled: false             # set to true if your CNI supports it (Calico, Cilium)

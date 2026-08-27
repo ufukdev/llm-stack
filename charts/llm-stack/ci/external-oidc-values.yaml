@@ -1,0 +1,67 @@
+# CI scenario: external OIDC provider (no Keycloak)
+# Verifies that keycloakx subchart and realm import job are NOT rendered.
+
+global:
+  domain: "local.test"
+
+inference:
+  mode: local
+
+openWebui:
+  enabled: true
+
+open-webui:
+  persistence:
+    enabled: true
+    size: 1Gi
+  ollama:
+    enabled: false
+  ollamaUrls:
+    - http://llm-ollama.llm.svc.cluster.local:11434
+  pipelines:
+    enabled: false
+  extraEnvVars:
+    - name: ENABLE_OLLAMA_API
+      value: "true"
+    - name: VECTOR_DB
+      value: "qdrant"
+    - name: QDRANT_URI
+      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
+
+ollama:
+  enabled: true
+  ollama:
+    models:
+      pull:
+        - qwen2.5:0.5b
+  persistence:
+    enabled: true
+    size: 5Gi
+
+qdrant:
+  enabled: true
+  persistence:
+    size: 1Gi
+
+# Keycloak disabled — using external IdP
+keycloak:
+  enabled: false
+  realmImport:
+    enabled: false
+
+# External OIDC configuration
+oidc:
+  external:
+    enabled: true
+    issuerUrl: "https://sso.example.com/realms/my-realm"
+    clientId: "open-webui"
+    clientSecret: "external-secret-placeholder"
+
+litellm:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+ingress:
+  enabled: false

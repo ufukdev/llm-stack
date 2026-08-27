@@ -1,0 +1,54 @@
+# CI scenario: external inference endpoint (no Ollama)
+# Verifies that the ollama subchart is NOT rendered.
+
+global:
+  domain: "local.test"
+
+inference:
+  mode: external
+  external:
+    baseUrl: "https://api.example.com/v1"
+    apiKey: "sk-placeholder"
+
+openWebui:
+  enabled: true
+
+open-webui:
+  persistence:
+    enabled: true
+    size: 1Gi
+  ollama:
+    enabled: false
+  ollamaUrls: []   # no local Ollama
+  pipelines:
+    enabled: false
+  extraEnvVars:
+    - name: VECTOR_DB
+      value: "qdrant"
+    - name: QDRANT_URI
+      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
+  openaiBaseApiUrl: "https://api.example.com/v1"
+  openaiApiKey: "sk-placeholder"
+
+# Ollama disabled — using external inference
+ollama:
+  enabled: false
+
+qdrant:
+  enabled: true
+  persistence:
+    size: 1Gi
+
+keycloak:
+  enabled: false
+  realmImport:
+    enabled: false
+
+litellm:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+ingress:
+  enabled: false

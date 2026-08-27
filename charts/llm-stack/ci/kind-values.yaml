@@ -23,6 +23,15 @@ open-webui:
   extraEnvVars:
     - name: ENABLE_OLLAMA_API
       value: "true"
+    - name: VECTOR_DB
+      value: "qdrant"
+    - name: QDRANT_URI
+      value: "http://llm-qdrant.llm.svc.cluster.local:6333"
+  # LiteLLM gateway as OpenAI-compatible backend
+  # CI release = "llm", so service is llm-litellm.llm.svc.cluster.local
+  openaiBaseApiUrl: "http://llm-litellm.llm.svc.cluster.local:4000/v1"
+  openaiApiKeyExistingSecret: "llm-llm-stack-secrets"
+  openaiApiKeyExistingSecretKey: "litellmMasterKey"
   # SSO: point to internal Keycloak (browser redirect only works with Ingress in prod)
   sso:
     enabled: true
@@ -76,7 +85,22 @@ keycloakx:
       value: "edge"
 
 litellm:
-  enabled: false
+  enabled: true
+
+# litellm-helm sub-chart: CI release is "llm" → secret name is "llm-llm-stack-secrets"
+litellm-helm:
+  masterkeySecretName: "llm-llm-stack-secrets"
+  masterkeySecretKey: "litellmMasterKey"
+  db:
+    deployStandalone: true
+  proxy_config:
+    model_list:
+      - model_name: qwen2.5-0.5b
+        litellm_params:
+          model: ollama/qwen2.5:0.5b
+          api_base: "http://llm-ollama.llm.svc.cluster.local:11434"
+    general_settings:
+      master_key: os.environ/PROXY_MASTER_KEY
 
 networkPolicy:
   enabled: false

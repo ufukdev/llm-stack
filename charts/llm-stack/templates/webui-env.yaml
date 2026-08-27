@@ -1,21 +1,20 @@
 {{/*
-  webui-env.yaml — builds the extraEnvVars list injected into the open-webui sub-chart.
-  Ollama URL is set via open-webui.ollamaUrls (chart-native, not via env var).
-  This template only handles OIDC and Qdrant env vars that have no chart-native key.
+  webui-env.yaml — ConfigMap for Open WebUI environment variables that require
+  dynamic values (Keycloak/OIDC URLs, Qdrant URL) derived from chart values.
+
+  To inject these env vars into Open WebUI, add this to your values:
+    open-webui:
+      extraEnvFrom:
+        - configMapRef:
+            name: <fullname>-webui-env   # e.g. llm-stack-webui-env
+
+  For CI (release=llm), the ConfigMap is named llm-llm-stack-webui-env.
+  Static env vars (VECTOR_DB, ENABLE_OLLAMA_API) are set directly in
+  open-webui.extraEnvVars in the values files to avoid this dependency.
 */}}
 {{- if .Values.openWebui.enabled }}
 {{- $oidcEnabled := or .Values.keycloak.enabled .Values.oidc.external.enabled }}
 {{- if or $oidcEnabled .Values.qdrant.enabled }}
-{{/*
-  NOTE: The env vars below are injected into open-webui via values.yaml:
-    open-webui.extraEnvVars:
-      - name: ENABLE_OAUTH_SIGNUP
-        value: "true"
-      ...
-  This ConfigMap is kept as a reference / override mechanism for operators.
-  The sub-chart picks up its own extraEnvVars from values, not from this ConfigMap directly.
-  For OIDC to take effect, the helm upgrade must include these values under open-webui.extraEnvVars.
-*/}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -34,9 +33,9 @@ data:
   OAUTH_CLIENT_ID: "open-webui"
   {{- end }}
   {{- end }}
-  VECTOR_DB: "qdrant"
   {{- if .Values.qdrant.enabled }}
-  QDRANT_URL: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace | quote }}
+  VECTOR_DB: "qdrant"
+  QDRANT_URI: {{ printf "http://%s-qdrant.%s.svc.cluster.local:6333" .Release.Name .Release.Namespace | quote }}
   {{- end }}
 {{- end }}
 {{- end }}
