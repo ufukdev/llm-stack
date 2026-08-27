@@ -23,6 +23,18 @@ open-webui:
   extraEnvVars:
     - name: ENABLE_OLLAMA_API
       value: "true"
+    - name: ENABLE_COMMUNITY_SHARING
+      value: "false"
+    - name: SCARF_NO_ANALYTICS
+      value: "true"
+    - name: ANONYMIZED_TELEMETRY
+      value: "false"
+    - name: HF_HUB_OFFLINE
+      value: "1"
+    - name: RAG_EMBEDDING_ENGINE
+      value: "ollama"
+    - name: RAG_EMBEDDING_MODEL
+      value: "nomic-embed-text"
     - name: VECTOR_DB
       value: "qdrant"
     - name: QDRANT_URI

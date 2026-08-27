@@ -49,28 +49,33 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ingress-nginx
+{{- if .Values.networkPolicy.allowedEgressCIDRs }}
 ---
-# Allow Open WebUI pod to make HTTPS calls for telemetry/model-discovery.
-# Open WebUI v0.11+ calls external HTTPS endpoints during startup
-# (e.g., community model registry behind CloudFront).
-# Scoped to the Open WebUI pod only; all other pods remain restricted.
+# Opt-in HTTPS egress to explicit CIDRs only.
+# Set networkPolicy.allowedEgressCIDRs to specific IP ranges when pods
+# must reach known external endpoints (e.g. on-prem proxy, internal CA).
+# Leave empty (default) to enforce full egress isolation.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "llm-stack.fullname" . }}-allow-webui-egress-https
+  name: {{ include "llm-stack.fullname" . }}-allow-egress-https-cidrs
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "llm-stack.labels" . | nindent 4 }}
 spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: open-webui
+  podSelector: {}
   policyTypes:
     - Egress
   egress:
-    - ports:
+    - to:
+        {{- range .Values.networkPolicy.allowedEgressCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
         - protocol: TCP
           port: 443
         - protocol: TCP
           port: 80
+{{- end }}
 {{- end }}

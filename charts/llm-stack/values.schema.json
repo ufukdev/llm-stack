@@ -151,6 +151,11 @@
         "enabled": {
           "type": "boolean",
           "description": "Deploy NetworkPolicies (requires Calico, Cilium, or similar CNI)"
+        },
+        "allowedEgressCIDRs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Opt-in CIDR whitelist for HTTPS egress (ports 80/443). Empty list = full isolation. Example: [\"10.0.0.0/8\"]"
         }
       }
     },

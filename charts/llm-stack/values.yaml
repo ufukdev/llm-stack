@@ -37,6 +37,24 @@ open-webui:
   extraEnvVars:
     - name: ENABLE_OLLAMA_API
       value: "true"
+    # Privacy: disable all external call-home behaviour by default.
+    # These are the correct knobs as of Open WebUI v0.11.x.
+    # Without these, Open WebUI contacts HuggingFace on startup (embedding
+    # model download) and CloudFront (community registry) — both blocked
+    # when networkPolicy.enabled=true and contradicting the "no data leaves"
+    # guarantee. Use Ollama for embeddings so no external dependency exists.
+    - name: ENABLE_COMMUNITY_SHARING
+      value: "false"
+    - name: SCARF_NO_ANALYTICS
+      value: "true"
+    - name: ANONYMIZED_TELEMETRY
+      value: "false"
+    - name: HF_HUB_OFFLINE
+      value: "1"
+    - name: RAG_EMBEDDING_ENGINE
+      value: "ollama"
+    - name: RAG_EMBEDDING_MODEL
+      value: "nomic-embed-text"
 
 # ---------------------------------------------------------------------------
 # Ollama (local inference)
@@ -121,6 +139,11 @@ oidc:
 # ---------------------------------------------------------------------------
 networkPolicy:
   enabled: false
+  # Opt-in egress CIDR whitelist — only active when enabled=true.
+  # Add specific IP ranges (e.g. an internal proxy or private registry) when
+  # pods must reach known external endpoints over HTTPS.
+  # Example: ["10.0.0.0/8", "192.168.1.100/32"]
+  allowedEgressCIDRs: []
 
 # ---------------------------------------------------------------------------
 # Ingress
